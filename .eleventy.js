@@ -22,6 +22,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   let components = {};
   let cssManager = new CssManager();
+  let workingDirectory = path.resolve(".");
 
   // eleventyConfig.addTemplateFormats("vue");
   eleventyConfig.setTemplateFormats("vue");
@@ -35,7 +36,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     // read: false,
     init: async function() {
       let componentDir = options.componentsDirectory || path.join(this.config.inputDir, this.config.dir.includes);
-      let componentFiles = await fastglob(path.join(componentDir, "**/*.vue"), {
+      let searchGlob = path.join(workingDirectory, componentDir, "**/*.vue");
+      let componentFiles = await fastglob(searchGlob, {
         caseSensitiveMatch: false
       });
 
@@ -77,7 +79,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         let componentPath = path.join(options.cacheDirectory, entry.fileName);
 
         deleteFromRequireCache(componentPath);
-        components[key] = require("./" + componentPath);
+        components[key] = require(path.join(workingDirectory, componentPath));
         // Add universal JavaScript functions to components
         components[key].methods = Object.assign({}, this.config.javascriptFunctions, components[key].methods);
         // extra stuff for caching
