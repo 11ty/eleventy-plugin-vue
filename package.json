@@ -1,5 +1,5 @@
 {
-  "name": "eleventy-plugin-vue",
+  "name": "@11ty/eleventy-plugin-vue",
   "version": "0.0.1",
   "description": "",
   "publishConfig": {
