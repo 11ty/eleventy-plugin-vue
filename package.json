@@ -1,0 +1,48 @@
+{
+  "name": "eleventy-plugin-vue",
+  "version": "0.0.1",
+  "description": "",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": ".eleventy.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sample": "npx @11ty/eleventy --input=test/sample"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/11ty/eleventy-plugin-vue.git"
+  },
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/11ty"
+  },
+  "keywords": [
+    "eleventy",
+    "eleventy-plugin"
+  ],
+  "author": {
+    "name": "Zach Leatherman",
+    "email": "zachleatherman@gmail.com",
+    "url": "https://zachleat.com/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/11ty/eleventy-plugin-vue/issues"
+  },
+  "homepage": "https://github.com/11ty/eleventy-plugin-vue#readme",
+  "peerDependencies": {
+    "@11ty/eleventy": ">=0.11.0"
+  },
+  "dependencies": {
+    "@11ty/eleventy": "file:../eleventy",
+    "fast-glob": "^3.2.2",
+    "rollup": "^2.0.6",
+    "rollup-plugin-css-only": "^2.0.0",
+    "rollup-plugin-vue": "^5.1.6",
+    "vue": "^2.6.11",
+    "vue-server-renderer": "^2.6.11",
+    "vue-template-compiler": "^2.6.11"
+  }
+}
