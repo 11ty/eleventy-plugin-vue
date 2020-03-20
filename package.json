@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "fast-glob": "^3.2.2",
+    "lodash.merge": "^4.6.2",
     "rollup": "^2.0.6",
     "rollup-plugin-css-only": "^2.0.0",
     "rollup-plugin-vue": "^5.1.6",

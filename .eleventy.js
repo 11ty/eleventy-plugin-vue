@@ -5,11 +5,14 @@ const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCss = require("rollup-plugin-css-only");
 const vueServerRenderer = require("vue-server-renderer");
+const lodashMerge = require("lodash.merge");
 const AssetManager = require("./src/AssetManager");
 
 const globalOptions = {
   componentsDirectory: "",
-  cacheDirectory: ".cache/11ty/vue/"
+  cacheDirectory: ".cache/11ty/vue/",
+  // See https://rollup-plugin-vue.vuejs.org/options.html
+  rollupPluginVueOptions: {}
 };
 
 function deleteFromRequireCache(componentPath) {
@@ -41,28 +44,29 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       let componentFiles = await fastglob(searchGlob, {
         caseSensitiveMatch: false
       });
+      let rollupVueOptions = lodashMerge({
+        css: false,
+        template: {
+          optimizeSSR: true
+        }
+        // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
+      }, options.rollupPluginVueOptions);
 
-      const bundle = await rollup.rollup({
+      let plugins = [
+        rollupPluginCss({
+          output: (styles, styleNodes) => {
+            cssManager.addRollupComponentNodes(styleNodes, ".vue");
+          }
+        }),
+        rollupPluginVue(rollupVueOptions)
+      ];
+
+      let bundle = await rollup.rollup({
         input: componentFiles,
-        plugins: [
-          rollupPluginCss({
-            output: (styles, styleNodes) => {
-              cssManager.addRollupComponentNodes(styleNodes, ".vue");
-            }
-          }),
-          // TODO allow upstream configs to configure these options
-          // See https://rollup-plugin-vue.vuejs.org/options.html
-          rollupPluginVue({
-            css: false,
-            template: {
-              optimizeSSR: true
-            },
-            // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
-          })
-        ]
+        plugins: plugins
       });
 
-      const { output } = await bundle.write({
+      let { output } = await bundle.write({
         // format: "esm"
         format: "cjs",
         dir: options.cacheDirectory
