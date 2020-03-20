@@ -4,7 +4,7 @@
 
 ## Requirements
 
-* Features not yet available on a stable public release of Eleventy, specifically: [Custom File Extension Handlers feature from Eleventy](https://github.com/11ty/eleventy/issues/117).
+* Requires features not yet available on a stable public release of Eleventy, specifically: [Custom File Extension Handlers feature from Eleventy](https://github.com/11ty/eleventy/issues/117).
 
 ## Features
 
@@ -24,3 +24,13 @@
 ### Warnings
 
 * Adding a `<!doctype html>` to a Vue template is not supported by Vue. For this reason it is recommended to use a different template syntax for your layout (until Vue.js Page Templates support is added per the note above).
+
+
+## Relevant Links
+
+* https://ssr.vuejs.org/
+* https://vuejs.org/v2/guide/single-file-components.html
+* https://vue-loader.vuejs.org/guide/scoped-css.html
+* https://rollup-plugin-vue.vuejs.org/
+* https://rollupjs.org/guide/en/
+<!-- https://github.com/tj/consolidate.js/ -->
