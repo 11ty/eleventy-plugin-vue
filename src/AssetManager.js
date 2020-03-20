@@ -1,5 +1,9 @@
 class AssetManager {
   constructor() {
+    this.init();
+  }
+
+  init() {
     this.components = {};
     this.css = {};
   }
