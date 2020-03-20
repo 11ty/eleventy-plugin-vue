@@ -5,11 +5,11 @@ const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCss = require("rollup-plugin-css-only");
 const vueServerRenderer = require("vue-server-renderer");
-const CssManager = require("./src/CssManager");
+const AssetManager = require("./src/AssetManager");
 
 const globalOptions = {
   componentsDirectory: "",
-  cacheDirectory: ".cache/vue/"
+  cacheDirectory: ".cache/11ty/vue/"
 };
 
 function deleteFromRequireCache(componentPath) {
@@ -21,15 +21,14 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let options = Object.assign({}, globalOptions, configGlobalOptions);
 
   let components = {};
-  let cssManager = new CssManager();
+  let cssManager = new AssetManager();
   let workingDirectory = path.resolve(".");
 
-  // eleventyConfig.addTemplateFormats("vue");
-  eleventyConfig.setTemplateFormats("vue");
+  eleventyConfig.addTemplateFormats("vue");
 
   // This will probably only work in a layout template
   eleventyConfig.addFilter("getCss", (url) => {
-    return cssManager.getCssForUrl(url);
+    return cssManager.getCodeForUrl(url);
   });
 
   eleventyConfig.addExtension("vue", {
@@ -46,7 +45,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         plugins: [
           rollupPluginCss({
             output: (styles, styleNodes) => {
-              cssManager.addComponentStyles(styleNodes, ".vue");
+              cssManager.addRollupComponentNodes(styleNodes, ".vue");
             }
           }),
           // TODO allow upstream configs to configure these options
