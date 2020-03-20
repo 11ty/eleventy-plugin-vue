@@ -20,3 +20,7 @@
 * Does not yet embed any client-side JavaScript from inside single file components into the output for use on the client. Any JavaScript embedded there is used only for rendering templates in the build and does not show up in the output.
 	* Note that if this is added in the future, it will likely be an opt-in feature.
 * I’d like to allow any Eleventy template engine to be used as `lang` on `<template>` or `<style>` or `<script>` but this is not yet supported.
+
+### Warnings
+
+* Adding a `<!doctype html>` to a Vue template is not supported by Vue. For this reason it is recommended to use a different template syntax for your layout (until Vue.js Page Templates support is added per the note above).
