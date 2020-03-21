@@ -2,9 +2,59 @@
 
 ⚠️ Work in progress!!
 
-## Requirements
+## Installation
 
-* Requires features not yet available on a stable public release of Eleventy, specifically: [Custom File Extension Handlers feature from Eleventy](https://github.com/11ty/eleventy/issues/117).
+```sh
+npm install @11ty/eleventy-plugin-vue
+```
+
+* Requires Eleventy 0.11.0 Beta 2 or above (`0.11.0-beta.2`)
+* Requires features not yet available on a stable public release of Eleventy, specifically: [Custom File Extension Handlers feature from Eleventy](https://github.com/11ty/eleventy/issues/117). Opt in to experimental features on Eleventy by running `ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy`.
+
+## Usage
+
+### Add to Configuration File
+
+Usually `.eleventy.js`:
+
+```js
+const eleventyVue = require("@11ty/eleventy-plugin-vue");
+
+module.exports = function(eleventyConfig) {
+  // Use Defaults
+  eleventyConfig.addPlugin(eleventyVue);
+};
+```
+
+#### Customize with Options
+
+```js
+const eleventyVue = require("@11ty/eleventy-plugin-vue");
+
+module.exports = function(eleventyConfig) {
+  // OR, Use your own options
+  eleventyConfig.addPlugin(eleventyVue, {
+	  // Directory to search for Vue single file components
+	  // (if empty, defaults to includes folder)
+		componentsDirectory: "",
+
+		// Directory to store compiled Vue single file components
+		cacheDirectory: ".cache/11ty/vue/",
+
+		// Use postcss in the single file components
+		rollupPluginVueOptions: {
+			style: {
+				postcssPlugins: [
+					require("autoprefixer"),
+					require("postcss-nested")
+				]
+			}
+		}
+	});
+};
+```
+
+For a full list of `rollupPluginVueOptions`, see [`rollup-plugin-vue`’s Options](https://rollup-plugin-vue.vuejs.org/options.html#include).
 
 ## Features
 
