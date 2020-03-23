@@ -2,6 +2,7 @@
 <template>
 <div class="parent">
 	<child></child>
+	<!-- <sibling></sibling> -->
 </div>
 </template>
 
@@ -19,6 +20,7 @@
 
 <script>
 import childComponent from "./child.vue";
+import siblingComponent from "./sibling.vue";
 
 export default {
 	data: function() {
@@ -27,7 +29,8 @@ export default {
 		};
 	},
 	components: {
-		child: childComponent
+		child: childComponent,
+		sibling: siblingComponent
 	}
 };
 </script>

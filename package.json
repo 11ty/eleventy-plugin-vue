@@ -8,7 +8,7 @@
   "main": ".eleventy.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "sample": "npx @11ty/eleventy --input=test/sample"
+    "sample": "ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy --input=test/sample"
   },
   "repository": {
     "type": "git",
@@ -35,6 +35,12 @@
   "peerDependencies": {
     "@11ty/eleventy": ">=0.11.0"
   },
+  "ava": {
+    "failFast": false,
+    "files": [
+      "./test/*.js"
+    ]
+  },
   "dependencies": {
     "fast-glob": "^3.2.2",
     "lodash.merge": "^4.6.2",
@@ -44,5 +50,8 @@
     "vue": "^2.6.11",
     "vue-server-renderer": "^2.6.11",
     "vue-template-compiler": "^2.6.11"
+  },
+  "devDependencies": {
+    "ava": "^3.5.1"
   }
 }

@@ -72,16 +72,25 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         dir: options.cacheDirectory
       });
 
-      let compiledComponents = output.filter(entry => true);
-      if(compiledComponents.length > 1) {
-        // filter out any downstream imports, we only want top level components here
-        // TODO maybe use the componentFiles above to do this better
-        compiledComponents = compiledComponents.filter(entry => entry.imports.length);
+      // Filter out the normalizer module
+      // Careful, using __vue_normalize__ here may be brittle
+      let normalizer = output.filter(entry => entry.exports.filter(exp => exp === "__vue_normalize__").length);
+      let normalizerFilename;
+      if(normalizer.length) {
+        normalizerFilename = normalizer[0].fileName;
       }
 
+      let compiledComponents = output.filter(entry => entry.fileName !== normalizerFilename);
+
       for(let entry of compiledComponents) {
-        let key = entry.fileName.substr(0, entry.fileName.length - ".js".length);
+        let key = AssetManager.getComponentNameFromPath(entry.fileName, ".js")
         let componentPath = path.join(options.cacheDirectory, entry.fileName);
+
+        // If you import it, it will roll up the CSS
+        let componentImports = entry.imports.filter(entry => !normalizerFilename || entry !== normalizerFilename);
+        for(let importFilename of componentImports) {
+          cssManager.addComponentRelationship(entry.fileName, importFilename, ".js");
+        }
 
         deleteFromRequireCache(componentPath);
         components[key] = require(path.join(workingDirectory, componentPath));
