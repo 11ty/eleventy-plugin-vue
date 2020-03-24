@@ -43,15 +43,15 @@ class AssetManager {
 
   addComponentCode(componentName, code) {
     if(!this.css[componentName]) {
-      this.css[componentName] = [];
+      this.css[componentName] = new Set();
     }
-    this.css[componentName].push(code);
+    this.css[componentName].add(code);
   }
 
   getComponentCode(componentName) {
     if(this.css[componentName]) {
       return `/* ${componentName} Component */
-${this.css[componentName].map(entry => entry.trim()).join("\n")}`;
+${Array.from(this.css[componentName]).map(entry => entry.trim()).join("\n")}`;
     }
   }
 

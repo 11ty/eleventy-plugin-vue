@@ -37,8 +37,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   eleventyConfig.addExtension("vue", {
     // read: false,
     init: async function() {
-      cssManager.init();
-
       let componentDir = options.componentsDirectory || path.join(this.config.inputDir, this.config.dir.includes);
       let searchGlob = path.join(workingDirectory, componentDir, "**/*.vue");
       let componentFiles = await fastglob(searchGlob, {
