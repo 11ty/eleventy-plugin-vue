@@ -6,13 +6,16 @@ const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCss = require("rollup-plugin-css-only");
 const vueServerRenderer = require("vue-server-renderer");
 const lodashMerge = require("lodash.merge");
-const AssetManager = require("./src/AssetManager");
+const { InlineCodeManager } = require("@11ty/eleventy-assets");
 
 const globalOptions = {
   componentsDirectory: "",
   cacheDirectory: ".cache/11ty/vue/",
   // See https://rollup-plugin-vue.vuejs.org/options.html
-  rollupPluginVueOptions: {}
+  rollupPluginVueOptions: {},
+  assets: {
+    css: null
+  } // optional `eleventy-assets` instances
 };
 
 function deleteFromRequireCache(componentPath) {
@@ -21,15 +24,17 @@ function deleteFromRequireCache(componentPath) {
 }
 
 module.exports = function(eleventyConfig, configGlobalOptions = {}) {
-  let options = Object.assign({}, globalOptions, configGlobalOptions);
+  let options = lodashMerge({}, globalOptions, configGlobalOptions);
 
   let components = {};
-  let cssManager = new AssetManager();
+  let cssManager = options.assets.css || new InlineCodeManager();
   let workingDirectory = path.resolve(".");
 
   eleventyConfig.addTemplateFormats("vue");
 
-  // This will probably only work in a layout template
+  // TODO Add warnings to readme
+  // * This will probably only work in a layout template.
+  // * Probably complications with components+CSS used in same layout template.
   eleventyConfig.addFilter("getCss", (url) => {
     return cssManager.getCodeForUrl(url);
   });
@@ -81,13 +86,13 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       let compiledComponents = output.filter(entry => entry.fileName !== normalizerFilename);
 
       for(let entry of compiledComponents) {
-        let key = AssetManager.getComponentNameFromPath(entry.fileName, ".js")
+        let key = InlineCodeManager.getComponentNameFromPath(entry.fileName, ".js")
         let componentPath = path.join(options.cacheDirectory, entry.fileName);
 
         // If you import it, it will roll up the CSS
         let componentImports = entry.imports.filter(entry => !normalizerFilename || entry !== normalizerFilename);
         for(let importFilename of componentImports) {
-          cssManager.addComponentRelationship(entry.fileName, importFilename, ".js");
+          cssManager.addRawComponentRelationship(entry.fileName, importFilename, ".js");
         }
 
         deleteFromRequireCache(componentPath);

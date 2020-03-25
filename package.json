@@ -1,13 +1,13 @@
 {
   "name": "@11ty/eleventy-plugin-vue",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Use Vue.js templates and Vue.js single file components in Eleventy.",
   "publishConfig": {
     "access": "public"
   },
   "main": ".eleventy.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "ava",
     "sample": "ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy --input=test/sample"
   },
   "repository": {
@@ -42,6 +42,7 @@
     ]
   },
   "dependencies": {
+    "@11ty/eleventy-assets": "1.0.0",
     "fast-glob": "^3.2.2",
     "lodash.merge": "^4.6.2",
     "rollup": "^2.0.6",

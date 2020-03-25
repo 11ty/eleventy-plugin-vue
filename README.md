@@ -56,6 +56,28 @@ module.exports = function(eleventyConfig) {
 
 For a full list of `rollupPluginVueOptions`, see [`rollup-plugin-vue`’s Options](https://rollup-plugin-vue.vuejs.org/options.html#include).
 
+#### Advanced Feature: `eleventy-assets`
+
+_Compatible with @11ty/eleventy-plugin-vue 0.0.5 and newer._
+
+[Eleventy’s Assets plugin](https://github.com/11ty/eleventy-assets) lets you manage your own Inline CSS or JavaScript. For the first version of the Eleventy Vue plugin, you can reuse an existing CSS code manager from `eleventy-assets` add CSS from your Vue.js Single File Components too.
+
+```js
+const eleventyVue = require("@11ty/eleventy-plugin-vue");
+const { InlineCodeManager } = require("@11ty/eleventy-assets");
+
+module.exports = function(eleventyConfig) {
+  let myExistingCssManager = new InlineCodeManager();
+
+  eleventyConfig.addPlugin(eleventyVue, {
+    // Re-use an existing `eleventy-assets` Manager
+    assets: {
+      css: myExistingCssManager
+    }
+  });
+};
+```
+
 ## Features
 
 * Compiles `*.vue` templates as Vue.js syntax, similar to other Eleventy template language.
