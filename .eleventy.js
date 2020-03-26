@@ -124,9 +124,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
             if(previousData && typeof previousData === "function") {
               resolvedPreviousData = previousData.call(this);
             }
-            return lodashMerge(resolvedPreviousData || {}, {
+
+            // if `page` collides, prefer user data
+            return lodashMerge({
               page: data.page
-            });
+            }, resolvedPreviousData || {});
           };
 
           // Add `javascriptFunctions` to component methods
