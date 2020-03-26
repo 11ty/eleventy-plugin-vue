@@ -97,8 +97,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
         deleteFromRequireCache(componentPath);
         components[key] = require(path.join(workingDirectory, componentPath));
-        // Add universal JavaScript functions to components
-        components[key].methods = Object.assign({}, this.config.javascriptFunctions, components[key].methods);
         // extra stuff for caching
         components[key].name = key;
         components[key].serverCacheKey = props => key;
@@ -117,6 +115,23 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
             set: (key, value) => {}
           }
         });
+
+        for(let name in components) {
+          // Add `page` to component data, see 11ty/eleventy/#741
+          let previousData = components[name].data;
+          components[name].data = function() {
+            let resolvedPreviousData = previousData
+            if(previousData && typeof previousData === "function") {
+              resolvedPreviousData = previousData.call(this);
+            }
+            return lodashMerge(resolvedPreviousData || {}, {
+              page: data.page
+            });
+          };
+
+          // Add `javascriptFunctions` to component methods
+          components[name].methods = this.config.javascriptFunctions;
+        }
 
         const app = new Vue({
           template: str,

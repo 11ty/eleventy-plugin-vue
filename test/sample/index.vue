@@ -12,4 +12,5 @@ test: HELLO
 		<noDiv></noDiv>
 	</myHeader>
 	<hi></hi>
+	<p v-html="getUrl()"></p>
 </div>
