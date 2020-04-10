@@ -7,8 +7,12 @@
 </template>
 <script>
 export default {
-	data: {
-		localData: "localDataValue"
+	data: function() {
+		return {
+			localData: "localDataValue"
+		}
 	}
 }
 </script>
+
+<custom-block></custom-block>

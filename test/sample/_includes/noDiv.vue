@@ -28,6 +28,9 @@ export default {
 			greeting: "Hello"
 		};
 	},
+	created: function() {
+		console.log( "noDiv is created", this.url, this.page );
+	},
 	components: {
 		child: childComponent,
 		sibling: siblingComponent

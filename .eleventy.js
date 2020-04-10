@@ -3,7 +3,7 @@ const fastglob = require("fast-glob");
 const Vue = require("vue");
 const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
-const rollupPluginCss = require("rollup-plugin-css-only");
+const rollupPluginCssOnly = require("rollup-plugin-css-only");
 const vueServerRenderer = require("vue-server-renderer");
 const lodashMerge = require("lodash.merge");
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
@@ -34,7 +34,12 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   // TODO Add warnings to readme
   // * This will probably only work in a layout template.
-  // * Probably complications with components+CSS used in same layout template.
+  // * Probably complications with components that are only used in a layout template.
+
+  // TODO
+  // if(!options.assets.css) {
+  // }
+
   eleventyConfig.addFilter("getCss", (url) => {
     return cssManager.getCodeForUrl(url);
   });
@@ -56,7 +61,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       }, options.rollupPluginVueOptions);
 
       let plugins = [
-        rollupPluginCss({
+        rollupPluginCssOnly({
           output: (styles, styleNodes) => {
             cssManager.addRollupComponentNodes(styleNodes, ".vue");
           }
@@ -106,7 +111,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       return async (data) => {
         // abuse caching API to get components in use for every page
         // https://ssr.vuejs.org/api/#cache
-        // TODO is there a better way to do this?
+        // TODO reuse renderers
+        // TODO use/abuse `create` mixin or something instead of the component cache
         const renderer = vueServerRenderer.createRenderer({
           cache: {
             get: (key) => {
@@ -116,30 +122,20 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
           }
         });
 
-        for(let name in components) {
-          // Add `page` to component data, see 11ty/eleventy/#741
-          let previousData = components[name].data;
-          components[name].data = function() {
-            let resolvedPreviousData = previousData
-            if(previousData && typeof previousData === "function") {
-              resolvedPreviousData = previousData.call(this);
-            }
-
-            // if `page` collides, prefer user data
-            return lodashMerge({
+        Vue.mixin({
+          methods: this.config.javascriptFunctions,
+          data: function() {
+            return {
               page: data.page
-            }, resolvedPreviousData || {});
-          };
-
-          // Add `javascriptFunctions` to component methods
-          components[name].methods = this.config.javascriptFunctions;
-        }
+            };
+          }
+        });
 
         const app = new Vue({
           template: str,
-          data: data,
-          // Add universal JavaScript functions to pages
-          methods: this.config.javascriptFunctions,
+          data: function() {
+            return data;
+          },
           components: components // created in init()
         });
 
