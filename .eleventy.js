@@ -18,9 +18,15 @@ const globalOptions = {
   } // optional `eleventy-assets` instances
 };
 
-function deleteFromRequireCache(componentPath) {
-  let fullPath = path.join(path.normalize(path.resolve(".")), componentPath);
-  delete require.cache[fullPath];
+function clearVueFilesFromRequireCache(cacheDir) {
+  let deleteCount = 0;
+  for(let fullPath in require.cache) {
+    if(fullPath.startsWith(cacheDir)) {
+      deleteCount++;
+      delete require.cache[fullPath];
+    }
+  }
+  // console.log( `Deleted ${deleteCount} vue componentes from require.cache.` );
 }
 
 module.exports = function(eleventyConfig, configGlobalOptions = {}) {
@@ -88,6 +94,9 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         normalizerFilename = normalizer[0].fileName;
       }
 
+      let fullCacheDir = path.join(workingDirectory, options.cacheDirectory);
+      clearVueFilesFromRequireCache(fullCacheDir);
+
       let compiledComponents = output.filter(entry => entry.fileName !== normalizerFilename);
 
       for(let entry of compiledComponents) {
@@ -100,7 +109,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
           cssManager.addRawComponentRelationship(entry.fileName, importFilename, ".js");
         }
 
-        deleteFromRequireCache(componentPath);
         components[key] = require(path.join(workingDirectory, componentPath));
         // extra stuff for caching
         components[key].name = key;
@@ -113,6 +121,9 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         // https://ssr.vuejs.org/api/#cache
         // TODO reuse renderers
         // TODO use/abuse `create` mixin or something instead of the component cache
+        // TODO use Vue.component instead of passing to each
+        // TODO not all components should be global (of course!!!)
+        // TODO just make everything an SFC already
         const renderer = vueServerRenderer.createRenderer({
           cache: {
             get: (key) => {
