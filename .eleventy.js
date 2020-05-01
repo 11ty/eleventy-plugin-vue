@@ -1,13 +1,8 @@
-const path = require("path");
 const lodashMerge = require("lodash.merge");
 
 const Vue = require("vue");
 const vueServerRenderer = require("vue-server-renderer");
 const renderer = vueServerRenderer.createRenderer();
-
-const rollup = require("rollup");
-const rollupPluginVue = require("rollup-plugin-vue");
-const rollupPluginCssOnly = require("rollup-plugin-css-only");
 
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
 
@@ -48,56 +43,33 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     },
     init: async function() {
       eleventyVue.setInputDir(this.config.inputDir, this.config.dir.includes);
+      eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
       eleventyVue.clearRequireCache();
 
-      let rollupVueOptions = lodashMerge({
-        css: false,
-        template: {
-          optimizeSSR: true
-        }
-        // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
-      }, options.rollupPluginVueOptions);
-
-      let bundle = await rollup.rollup({
-        input: await eleventyVue.findFiles(),
-        plugins: [
-          rollupPluginCssOnly({
-            output: (styles, styleNodes) => {
-              for(let fullVuePath in styleNodes) {
-                eleventyVue.addCSS(fullVuePath, styleNodes[fullVuePath]);
-              }
-            }
-          }),
-          rollupPluginVue(rollupVueOptions)
-        ]
-      });
-
-      let { output } = await bundle.write({
-        // format: "esm"
-        format: "cjs",
-        dir: options.cacheDirectory
-      });
+      let output = await eleventyVue.write();
 
       for(let entry of output) {
-        if(!entry.facadeModuleId) {
+        let fullVuePath = entry.facadeModuleId;
+        if(!fullVuePath) {
           continue;
         }
 
-        let inputPath = eleventyVue.getLocalVueFilePath(entry.facadeModuleId);
-        eleventyVue.addVueToJavaScriptMapping(inputPath, entry.fileName);
+        let inputPath = eleventyVue.getLocalVueFilePath(fullVuePath);
+        let jsFilename = entry.fileName;
+        eleventyVue.addVueToJavaScriptMapping(inputPath, jsFilename);
 
-        let css = eleventyVue.getCSSForVueComponent(inputPath);
+        let css = eleventyVue.getCSSForComponent(inputPath);
         if(css) {
-          cssManager.addComponentCode(entry.fileName, css);
+          cssManager.addComponentCode(jsFilename, css);
         }
 
-        let isFullTemplateFile = !eleventyVue.isIncludeFile(entry.facadeModuleId);
+        let isFullTemplateFile = !eleventyVue.isIncludeFile(fullVuePath);
         if(isFullTemplateFile) {
           eleventyVue.addComponent(inputPath);
 
           // If you import it, it will roll up the imported CSS in the CSS manager
           for(let importFilename of entry.imports) {
-            cssManager.addComponentRelationship(entry.fileName, importFilename);
+            cssManager.addComponentRelationship(jsFilename, importFilename);
           }
         }
       }

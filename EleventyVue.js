@@ -1,5 +1,10 @@
 const path = require("path");
 const fastglob = require("fast-glob");
+const lodashMerge = require("lodash.merge");
+
+const rollup = require("rollup");
+const rollupPluginVue = require("rollup-plugin-vue");
+const rollupPluginCssOnly = require("rollup-plugin-css-only");
 
 class EleventyVue {
   constructor(cacheDirectory) {
@@ -9,6 +14,16 @@ class EleventyVue {
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
     this.components = {};
+  }
+
+  setRollupPluginVueOptions(rollupPluginVueOptions) {
+    this.rollupPluginVueOptions = lodashMerge({
+      css: false,
+      template: {
+        optimizeSSR: true
+      }
+      // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
+    }, rollupPluginVueOptions);
   }
 
   setInputDir(inputDir, includesDir) {
@@ -43,6 +58,30 @@ class EleventyVue {
     });
   }
 
+  async write() {
+    let bundle = await rollup.rollup({
+      input: await this.findFiles(),
+      plugins: [
+        rollupPluginCssOnly({
+          output: (styles, styleNodes) => {
+            for(let fullVuePath in styleNodes) {
+              this.addCSS(fullVuePath, styleNodes[fullVuePath]);
+            }
+          }
+        }),
+        rollupPluginVue(this.rollupPluginVueOptions)
+      ]
+    });
+
+    let { output } = await bundle.write({
+      // format: "esm"
+      format: "cjs",
+      dir: this.cacheDir
+    });
+
+    return output;
+  }
+
   getLocalVueFilePath(fullPath) {
     let filePath = fullPath;
     if(fullPath.startsWith(this.workingDir)) {
@@ -62,7 +101,7 @@ class EleventyVue {
     this.vueFileToCSSMap[localVuePath].push(cssText);
   }
 
-  getCSSForVueComponent(localVuePath) {
+  getCSSForComponent(localVuePath) {
     return (this.vueFileToCSSMap[localVuePath] || []).join("\n");
   }
 
