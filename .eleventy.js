@@ -83,6 +83,19 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
         Vue.mixin({
           methods: this.config.javascriptFunctions,
+          // Make this.page available to all child components in this render.
+          data: function() {
+            return {
+              page: data.page
+            };
+          }
+        });
+
+        // Only make the rest of the data available to this specific component
+        if(!vueComponent.mixins) {
+          vueComponent.mixins = [];
+        }
+        vueComponent.mixins.push({
           data: function() {
             return data;
           }
