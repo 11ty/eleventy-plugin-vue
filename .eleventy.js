@@ -1,5 +1,4 @@
 const path = require("path");
-const fastglob = require("fast-glob");
 const lodashMerge = require("lodash.merge");
 
 const Vue = require("vue");
@@ -12,6 +11,8 @@ const rollupPluginCssOnly = require("rollup-plugin-css-only");
 
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
 
+const EleventyVue = require("./EleventyVue");
+
 const globalOptions = {
   cacheDirectory: ".cache/vue/",
   // See https://rollup-plugin-vue.vuejs.org/options.html
@@ -21,32 +22,11 @@ const globalOptions = {
   } // optional `eleventy-assets` instances
 };
 
-function clearVueFilesFromRequireCache(cacheDir) {
-  let deleteCount = 0;
-  for(let fullPath in require.cache) {
-    if(fullPath.startsWith(cacheDir)) {
-      deleteCount++;
-      delete require.cache[fullPath];
-    }
-  }
-  // console.log( `Deleted ${deleteCount} vue components from require.cache.` );
-}
-
-function getLocalVueFilePath(fullPath, projectDir) {
-  let filePath = fullPath;
-  if(fullPath.startsWith(projectDir)) {
-    filePath = `.${fullPath.substr(projectDir.length)}`;
-  }
-  let extension = ".vue";
-  return filePath.substr(0, filePath.lastIndexOf(extension) + extension.length);
-}
-
 module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let options = lodashMerge({}, globalOptions, configGlobalOptions);
 
-  let templates = {};
-  let vueFileToJavaScriptFilenameMap = {};
-  let vueFileToCSSMap = {};
+  let eleventyVue = new EleventyVue();
+  eleventyVue.setCacheDir(options.cacheDirectory);
 
   let cssManager = options.assets.css || new InlineCodeManager();
   let workingDirectory = path.resolve(".");
@@ -66,19 +46,13 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   eleventyConfig.addExtension("vue", {
     read: false, // We use rollup to read the files
     getData: true,
-    getInstanceFromInputPath: async function(inputPath) {
-      if(!(inputPath in templates)) {
-        throw new Error(`"${inputPath}" is not a valid Vue template.`);
-      }
-      return templates[inputPath];
+    getInstanceFromInputPath: function(inputPath) {
+      return eleventyVue.getComponent(inputPath);
     },
     init: async function() {
-      let inputDir = path.join(workingDirectory, this.config.inputDir);
-      let includesDir = path.join(inputDir, this.config.dir.includes);
-      let searchGlob = path.join(inputDir, "**/*.vue");
-      let vueFiles = await fastglob(searchGlob, {
-        caseSensitiveMatch: false
-      });
+      eleventyVue.setInputDir(this.config.inputDir, this.config.dir.includes);
+      eleventyVue.clearRequireCache();
+
       let rollupVueOptions = lodashMerge({
         css: false,
         template: {
@@ -88,16 +62,12 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       }, options.rollupPluginVueOptions);
 
       let bundle = await rollup.rollup({
-        input: vueFiles,
+        input: await eleventyVue.findFiles(),
         plugins: [
           rollupPluginCssOnly({
             output: (styles, styleNodes) => {
-              for(let path in styleNodes) {
-                let vuePath = getLocalVueFilePath(path, workingDirectory);
-                if(!vueFileToCSSMap[vuePath]) {
-                  vueFileToCSSMap[vuePath] = [];
-                }
-                vueFileToCSSMap[vuePath].push(styleNodes[path]);
+              for(let fullVuePath in styleNodes) {
+                eleventyVue.addCSS(fullVuePath, styleNodes[fullVuePath]);
               }
             }
           }),
@@ -121,26 +91,23 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         normalizerFilename = normalizer[0].fileName;
       }
 
-      let fullCacheDir = path.join(workingDirectory, options.cacheDirectory);
-      clearVueFilesFromRequireCache(fullCacheDir);
-
       let compiledComponents = output.filter(entry => entry.fileName !== normalizerFilename);
       for(let entry of compiledComponents) {
         if(!entry.facadeModuleId) {
           continue;
         }
 
-        let inputPath = `.${entry.facadeModuleId.substr(workingDirectory.length)}`;
-        vueFileToJavaScriptFilenameMap[inputPath] = entry.fileName;
+        let inputPath = eleventyVue.getLocalVueFilePath(entry.facadeModuleId);
+        eleventyVue.addVueToJavaScriptMapping(inputPath, entry.fileName);
 
-        if(vueFileToCSSMap[inputPath]) {
-          cssManager.addComponentCode(entry.fileName, vueFileToCSSMap[inputPath].join("\n"));
+        let css = eleventyVue.getCSSForVueComponent(inputPath);
+        if(css) {
+          cssManager.addComponentCode(entry.fileName, css);
         }
 
-        let isFullTemplateFile = !entry.facadeModuleId.startsWith(includesDir);
+        let isFullTemplateFile = !eleventyVue.isIncludeFile(entry.facadeModuleId);
         if(isFullTemplateFile) {
-          let componentPath = path.join(options.cacheDirectory, entry.fileName);
-          templates[inputPath] = require(path.join(workingDirectory, componentPath));
+          eleventyVue.addComponent(inputPath);
 
           // If you import it, it will roll up the imported CSS in the CSS manager
           let componentImports = entry.imports.filter(entry => !normalizerFilename || entry !== normalizerFilename);
@@ -152,11 +119,10 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     },
     compile: function(str, inputPath) {
       return async (data) => {
-        if(!templates[data.page.inputPath]) {
-          throw new Error(`"${data.page.inputPath}" is not a valid Vue template.`);
-        }
+        let vueComponent = eleventyVue.getComponent(data.page.inputPath);
 
-        cssManager.addComponentForUrl(vueFileToJavaScriptFilenameMap[data.page.inputPath], data.page.url);
+        let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);
+        cssManager.addComponentForUrl(componentName, data.page.url);
 
         Vue.mixin({
           methods: this.config.javascriptFunctions,
@@ -165,9 +131,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
           }
         });
 
-        const app = new Vue(templates[data.page.inputPath]);
+        const app = new Vue(vueComponent);
         return renderer.renderToString(app);
       };
     }
   });
 };
+
+module.exports.EleventyVue = EleventyVue;
