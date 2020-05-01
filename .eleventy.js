@@ -29,17 +29,14 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   eleventyVue.setCacheDir(options.cacheDirectory);
 
   let cssManager = options.assets.css || new InlineCodeManager();
-  let workingDirectory = path.resolve(".");
 
   // Only add this filter if you’re not re-using your own asset manager.
-  if(!options.assets.css) {
-    // TODO Add warnings to readme
-    // * This will probably only work in a layout template.
-    // * Probably complications with components that are only used in a layout template.
-    eleventyConfig.addFilter("getVueComponentCssForPage", (url) => {
-      return cssManager.getCodeForUrl(url);
-    });
-  }
+  // TODO Add warnings to readme
+  // * This will probably only work in a layout template.
+  // * Probably complications with components that are only used in a layout template.
+  eleventyConfig.addFilter("getVueComponentCssForPage", (url) => {
+    return cssManager.getCodeForUrl(url);
+  });
 
   eleventyConfig.addTemplateFormats("vue");
 
@@ -81,18 +78,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         dir: options.cacheDirectory
       });
 
-      // Filter out the normalizer module
-      // Careful, using `normalizeComponent` and `__vue_normalize__` here may be brittle
-      let normalizer = output.filter(entry => {
-        return entry.exports.filter(exp => exp === "normalizeComponent" || exp === "__vue_normalize__").length;
-      });
-      let normalizerFilename;
-      if(normalizer.length) {
-        normalizerFilename = normalizer[0].fileName;
-      }
-
-      let compiledComponents = output.filter(entry => entry.fileName !== normalizerFilename);
-      for(let entry of compiledComponents) {
+      for(let entry of output) {
         if(!entry.facadeModuleId) {
           continue;
         }
@@ -110,8 +96,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
           eleventyVue.addComponent(inputPath);
 
           // If you import it, it will roll up the imported CSS in the CSS manager
-          let componentImports = entry.imports.filter(entry => !normalizerFilename || entry !== normalizerFilename);
-          for(let importFilename of componentImports) {
+          for(let importFilename of entry.imports) {
             cssManager.addComponentRelationship(entry.fileName, importFilename);
           }
         }
