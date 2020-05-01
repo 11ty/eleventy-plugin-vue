@@ -1,9 +1,5 @@
 const lodashMerge = require("lodash.merge");
 
-const Vue = require("vue");
-const vueServerRenderer = require("vue-server-renderer");
-const renderer = vueServerRenderer.createRenderer();
-
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
 
 const EleventyVue = require("./EleventyVue");
@@ -50,10 +46,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
       for(let entry of output) {
         let fullVuePath = entry.facadeModuleId;
-        if(!fullVuePath) {
-          continue;
-        }
-
         let inputPath = eleventyVue.getLocalVueFilePath(fullVuePath);
         let jsFilename = entry.fileName;
         eleventyVue.addVueToJavaScriptMapping(inputPath, jsFilename);
@@ -81,28 +73,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);
         cssManager.addComponentForUrl(componentName, data.page.url);
 
-        Vue.mixin({
-          methods: this.config.javascriptFunctions,
-          // Make this.page available to all child components in this render.
-          data: function() {
-            return {
-              page: data.page
-            };
-          }
-        });
-
-        // Only make the rest of the data available to this specific component
-        if(!vueComponent.mixins) {
-          vueComponent.mixins = [];
-        }
-        vueComponent.mixins.push({
-          data: function() {
-            return data;
-          }
-        });
-
-        const app = new Vue(vueComponent);
-        return renderer.renderToString(app);
+        eleventyVue.renderComponent(vueComponent, data, this.config.javascriptFunctions);
       };
     }
   });
