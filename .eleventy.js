@@ -1,16 +1,19 @@
 const path = require("path");
 const fastglob = require("fast-glob");
+const lodashMerge = require("lodash.merge");
+
 const Vue = require("vue");
+const vueServerRenderer = require("vue-server-renderer");
+const renderer = vueServerRenderer.createRenderer();
+
 const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCssOnly = require("rollup-plugin-css-only");
-const vueServerRenderer = require("vue-server-renderer");
-const lodashMerge = require("lodash.merge");
+
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
 
 const globalOptions = {
-  componentsDirectory: "",
-  cacheDirectory: ".cache/11ty/vue/",
+  cacheDirectory: ".cache/vue/",
   // See https://rollup-plugin-vue.vuejs.org/options.html
   rollupPluginVueOptions: {},
   assets: {
@@ -26,36 +29,54 @@ function clearVueFilesFromRequireCache(cacheDir) {
       delete require.cache[fullPath];
     }
   }
-  // console.log( `Deleted ${deleteCount} vue componentes from require.cache.` );
+  // console.log( `Deleted ${deleteCount} vue components from require.cache.` );
+}
+
+function getLocalVueFilePath(fullPath, projectDir) {
+  let filePath = fullPath;
+  if(fullPath.startsWith(projectDir)) {
+    filePath = `.${fullPath.substr(projectDir.length)}`;
+  }
+  let extension = ".vue";
+  return filePath.substr(0, filePath.lastIndexOf(extension) + extension.length);
 }
 
 module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let options = lodashMerge({}, globalOptions, configGlobalOptions);
 
-  let components = {};
+  let templates = {};
+  let vueFileToJavaScriptFilenameMap = {};
+  let vueFileToCSSMap = {};
+
   let cssManager = options.assets.css || new InlineCodeManager();
   let workingDirectory = path.resolve(".");
 
+  // Only add this filter if you’re not re-using your own asset manager.
+  if(!options.assets.css) {
+    // TODO Add warnings to readme
+    // * This will probably only work in a layout template.
+    // * Probably complications with components that are only used in a layout template.
+    eleventyConfig.addFilter("getVueComponentCssForPage", (url) => {
+      return cssManager.getCodeForUrl(url);
+    });
+  }
+
   eleventyConfig.addTemplateFormats("vue");
 
-  // TODO Add warnings to readme
-  // * This will probably only work in a layout template.
-  // * Probably complications with components that are only used in a layout template.
-
-  // TODO
-  // if(!options.assets.css) {
-  // }
-
-  eleventyConfig.addFilter("getCss", (url) => {
-    return cssManager.getCodeForUrl(url);
-  });
-
   eleventyConfig.addExtension("vue", {
-    // read: false,
+    read: false, // We use rollup to read the files
+    getData: true,
+    getInstanceFromInputPath: async function(inputPath) {
+      if(!(inputPath in templates)) {
+        throw new Error(`"${inputPath}" is not a valid Vue template.`);
+      }
+      return templates[inputPath];
+    },
     init: async function() {
-      let componentDir = options.componentsDirectory || path.join(this.config.inputDir, this.config.dir.includes);
-      let searchGlob = path.join(workingDirectory, componentDir, "**/*.vue");
-      let componentFiles = await fastglob(searchGlob, {
+      let inputDir = path.join(workingDirectory, this.config.inputDir);
+      let includesDir = path.join(inputDir, this.config.dir.includes);
+      let searchGlob = path.join(inputDir, "**/*.vue");
+      let vueFiles = await fastglob(searchGlob, {
         caseSensitiveMatch: false
       });
       let rollupVueOptions = lodashMerge({
@@ -66,18 +87,22 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
       }, options.rollupPluginVueOptions);
 
-      let plugins = [
-        rollupPluginCssOnly({
-          output: (styles, styleNodes) => {
-            cssManager.addRollupComponentNodes(styleNodes, ".vue");
-          }
-        }),
-        rollupPluginVue(rollupVueOptions)
-      ];
-
       let bundle = await rollup.rollup({
-        input: componentFiles,
-        plugins: plugins
+        input: vueFiles,
+        plugins: [
+          rollupPluginCssOnly({
+            output: (styles, styleNodes) => {
+              for(let path in styleNodes) {
+                let vuePath = getLocalVueFilePath(path, workingDirectory);
+                if(!vueFileToCSSMap[vuePath]) {
+                  vueFileToCSSMap[vuePath] = [];
+                }
+                vueFileToCSSMap[vuePath].push(styleNodes[path]);
+              }
+            }
+          }),
+          rollupPluginVue(rollupVueOptions)
+        ]
       });
 
       let { output } = await bundle.write({
@@ -87,8 +112,10 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       });
 
       // Filter out the normalizer module
-      // Careful, using __vue_normalize__ here may be brittle
-      let normalizer = output.filter(entry => entry.exports.filter(exp => exp === "__vue_normalize__").length);
+      // Careful, using `normalizeComponent` and `__vue_normalize__` here may be brittle
+      let normalizer = output.filter(entry => {
+        return entry.exports.filter(exp => exp === "normalizeComponent" || exp === "__vue_normalize__").length;
+      });
       let normalizerFilename;
       if(normalizer.length) {
         normalizerFilename = normalizer[0].fileName;
@@ -98,58 +125,47 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       clearVueFilesFromRequireCache(fullCacheDir);
 
       let compiledComponents = output.filter(entry => entry.fileName !== normalizerFilename);
-
       for(let entry of compiledComponents) {
-        let key = InlineCodeManager.getComponentNameFromPath(entry.fileName, ".js")
-        let componentPath = path.join(options.cacheDirectory, entry.fileName);
-
-        // If you import it, it will roll up the CSS
-        let componentImports = entry.imports.filter(entry => !normalizerFilename || entry !== normalizerFilename);
-        for(let importFilename of componentImports) {
-          cssManager.addRawComponentRelationship(entry.fileName, importFilename, ".js");
+        if(!entry.facadeModuleId) {
+          continue;
         }
 
-        components[key] = require(path.join(workingDirectory, componentPath));
-        // extra stuff for caching
-        components[key].name = key;
-        components[key].serverCacheKey = props => key;
+        let inputPath = `.${entry.facadeModuleId.substr(workingDirectory.length)}`;
+        vueFileToJavaScriptFilenameMap[inputPath] = entry.fileName;
+
+        if(vueFileToCSSMap[inputPath]) {
+          cssManager.addComponentCode(entry.fileName, vueFileToCSSMap[inputPath].join("\n"));
+        }
+
+        let isFullTemplateFile = !entry.facadeModuleId.startsWith(includesDir);
+        if(isFullTemplateFile) {
+          let componentPath = path.join(options.cacheDirectory, entry.fileName);
+          templates[inputPath] = require(path.join(workingDirectory, componentPath));
+
+          // If you import it, it will roll up the imported CSS in the CSS manager
+          let componentImports = entry.imports.filter(entry => !normalizerFilename || entry !== normalizerFilename);
+          for(let importFilename of componentImports) {
+            cssManager.addComponentRelationship(entry.fileName, importFilename);
+          }
+        }
       }
     },
     compile: function(str, inputPath) {
       return async (data) => {
-        // abuse caching API to get components in use for every page
-        // https://ssr.vuejs.org/api/#cache
-        // TODO reuse renderers
-        // TODO use/abuse `create` mixin or something instead of the component cache
-        // TODO use Vue.component instead of passing to each
-        // TODO not all components should be global (of course!!!)
-        // TODO just make everything an SFC already
-        const renderer = vueServerRenderer.createRenderer({
-          cache: {
-            get: (key) => {
-              cssManager.addComponentForUrl(key.split("::").shift(), data.page.url);
-            },
-            set: (key, value) => {}
-          }
-        });
+        if(!templates[data.page.inputPath]) {
+          throw new Error(`"${data.page.inputPath}" is not a valid Vue template.`);
+        }
+
+        cssManager.addComponentForUrl(vueFileToJavaScriptFilenameMap[data.page.inputPath], data.page.url);
 
         Vue.mixin({
           methods: this.config.javascriptFunctions,
           data: function() {
-            return {
-              page: data.page
-            };
+            return data;
           }
         });
 
-        const app = new Vue({
-          template: str,
-          data: function() {
-            return data;
-          },
-          components: components // created in init()
-        });
-
+        const app = new Vue(templates[data.page.inputPath]);
         return renderer.renderToString(app);
       };
     }

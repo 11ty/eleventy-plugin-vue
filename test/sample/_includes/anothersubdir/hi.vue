@@ -4,6 +4,6 @@
 
 <style>
 #SLDKJFLKDSJFKLJDSKLFJKLDSJKLF {
-	color: #000; /* subdir/hi.vue */
+	color: #222; /* anothersubdir/hi.vue */
 }
 </style>
