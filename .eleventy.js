@@ -73,7 +73,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);
         cssManager.addComponentForUrl(componentName, data.page.url);
 
-        eleventyVue.renderComponent(vueComponent, data, this.config.javascriptFunctions);
+        let vueMixin = {
+          methods: this.config.javascriptFunctions,
+        };
+
+        return eleventyVue.renderComponent(vueComponent, data, vueMixin);
       };
     }
   });

@@ -89,6 +89,12 @@ class EleventyVue {
     return bundle;
   }
 
+  // async generateFromBundle(bundle) {
+  //   let { output } = await bundle.generate(this.rollupBundleOptions);
+
+  //   return output;
+  // }
+
   async write(bundle) {
     if(!bundle) {
       bundle = await this.getBundle();
@@ -151,33 +157,34 @@ class EleventyVue {
     }
   }
 
-  // Not async yet
-  renderComponent(vueComponent, data, methods) {
-    let vueMixin = {};
-    if(methods) {
-      vueMixin.methods = methods;
-    }
-    if(data && data.page) {
-      // Make this.page available to all child components in this render.
-      vueMixin.data = function() {
-        return {
-          page: data.page
-        };
-      };
-    }
-    Vue.mixin(vueMixin);
 
-    // Only make the rest of the data available to this specific component
+  async renderComponent(vueComponent, data, mixin = {}) {
+    Vue.mixin(mixin);
+
+    // We don’t use a local mixin for this because it’s global to all components
+    // We don’t use a global mixin for this because modifies the Vue object and
+    // leaks into other templates (reports wrong page.url!)
+    if(!("page" in Vue.prototype)) {
+      Object.defineProperty(Vue.prototype, "page", {
+        get () {
+          return this.$root.$options.data().page;
+        }
+      });
+    }
+
+    // Full data cascade is available to the root template component
     if(!vueComponent.mixins) {
       vueComponent.mixins = [];
     }
     vueComponent.mixins.push({
       data: function() {
         return data;
-      }
+      },
     });
 
     const app = new Vue(vueComponent);
+
+    // returns a promise
     return renderer.renderToString(app);
   }
 }
