@@ -1,7 +1,7 @@
 {
   "name": "@11ty/eleventy-plugin-vue",
   "version": "0.1.0",
-  "description": "Use Vue.js templates and Vue.js single file components in Eleventy.",
+  "description": "Use Vue.js single file components in Eleventy.",
   "publishConfig": {
     "access": "public"
   },
