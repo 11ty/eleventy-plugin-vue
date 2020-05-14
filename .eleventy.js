@@ -29,6 +29,12 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     return cssManager.getCodeForUrl(url);
   });
 
+  // `beforeWatch` is supported on Eleventy 0.11.0-beta.3 and newer
+  eleventyConfig.on("beforeWatch", () => {
+    cssManager.resetComponentCode();
+    eleventyVue.reset();
+  });
+
   eleventyConfig.addTemplateFormats("vue");
 
   eleventyConfig.addExtension("vue", {

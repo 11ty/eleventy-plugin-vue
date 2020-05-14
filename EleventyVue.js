@@ -25,6 +25,10 @@ class EleventyVue {
     };
   }
 
+  reset() {
+    this.vueFileToCSSMap = {};
+  }
+
   setRollupPluginVueOptions(rollupPluginVueOptions) {
     this.rollupPluginVueOptions = lodashMerge({
       css: false,
@@ -123,7 +127,7 @@ class EleventyVue {
       this.vueFileToCSSMap[localVuePath] = [];
     }
 
-    this.vueFileToCSSMap[localVuePath].push(cssText);
+    this.vueFileToCSSMap[localVuePath].push(cssText.trim());
   }
 
   getCSSForComponent(localVuePath) {
@@ -167,6 +171,7 @@ class EleventyVue {
     if(!("page" in Vue.prototype)) {
       Object.defineProperty(Vue.prototype, "page", {
         get () {
+          // https://vuejs.org/v2/api/#vm-root
           return this.$root.$options.data().page;
         }
       });
