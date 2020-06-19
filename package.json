@@ -39,6 +39,9 @@
     "failFast": false,
     "files": [
       "./test/*.js"
+    ],
+    "ignoredByWatcher": [
+      "./.cache/**"
     ]
   },
   "dependencies": {
