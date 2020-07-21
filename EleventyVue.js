@@ -20,7 +20,8 @@ class EleventyVue {
     this.components = {};
 
     this.rollupBundleOptions = {
-      format: "cjs", // "esm"
+      format: "cjs", // because we’re consuming these in node. See also "esm"
+      exports: "default",
       // dir: this.cacheDir
     };
   }
