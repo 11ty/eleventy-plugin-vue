@@ -67,7 +67,14 @@ class EleventyVue {
   }
 
   async findFiles(glob = "**/*.vue") {
-    let globPath = path.join(this.inputDir, glob);
+    let globPath = [
+      path.join(this.inputDir, glob)
+    ];
+    if(!this.includesDir.startsWith(this.inputDir)) {
+      globPath.push(
+        path.join(this.includesDir, glob)
+      );
+    }
     return fastglob(globPath, {
       caseSensitiveMatch: false
     });
