@@ -29,6 +29,10 @@ class EleventyVue {
   reset() {
     this.vueFileToCSSMap = {};
   }
+  
+  resetFor(localVuePath) {
+    this.vueFileToCSSMap[localVuePath] = [];
+  }
 
   setRollupPluginVueOptions(rollupPluginVueOptions) {
     this.rollupPluginVueOptions = lodashMerge({
@@ -40,9 +44,12 @@ class EleventyVue {
     }, rollupPluginVueOptions);
   }
 
-  setInputDir(inputDir, includesDir) {
+  setInputDir(inputDir) {
     this.inputDir = path.join(this.workingDir, inputDir);
-    this.includesDir = path.join(this.inputDir, includesDir);
+  }
+  
+  setIncludesDir(includesDir) {
+    this.includesDir = path.join(this.workingDir, includesDir);
   }
 
   setCacheDir(cacheDir) {
@@ -54,11 +61,21 @@ class EleventyVue {
     return filepath.startsWith(this.includesDir);
   }
 
-  clearRequireCache() {
+  clearRequireCache(localVuePaths = []) {
     let fullCacheDir = path.join(this.workingDir, this.cacheDir);
+
+    let hasWatchFiles = !!localVuePaths.length;
+    let fullJsFilePathMap = {};
+    for(let file of localVuePaths) {
+      if(file.endsWith(".vue")) {
+        fullJsFilePathMap[this.getFullJavaScriptComponentFilePath(file)] = true;
+      }
+    }
+
     let deleteCount = 0;
     for(let fullPath in require.cache) {
-      if(fullPath.startsWith(fullCacheDir)) {
+      if(!hasWatchFiles && fullPath.startsWith(fullCacheDir) ||
+        hasWatchFiles && fullJsFilePathMap[fullPath]) {
         deleteCount++;
         delete require.cache[fullPath];
       }
@@ -73,10 +90,12 @@ class EleventyVue {
     });
   }
 
+  // Glob is optional
   async getBundle(input) {
     if(!input) {
       input = await this.findFiles();
     }
+
     let bundle = await rollup.rollup({
       input: input,
       plugins: [
@@ -102,7 +121,7 @@ class EleventyVue {
 
   async write(bundle) {
     if(!bundle) {
-      bundle = await this.getBundle();
+      throw new Error("Eleventy Vue Plugin: write(bundle) needs a bundle argument.");
     }
 
     let { output } = await bundle.write(this.rollupBundleOptions);
@@ -144,10 +163,15 @@ class EleventyVue {
     return this.vueFileToJavaScriptFilenameMap[localVuePath];
   }
 
-  /* Component Cache */
-  addComponent(localVuePath) {
+  getFullJavaScriptComponentFilePath(localVuePath) {
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
     let fullComponentPath = path.join(this.workingDir, this.cacheDir, jsFilename);
+    return fullComponentPath;
+  }
+
+  /* Component Cache */
+  addComponent(localVuePath) {
+    let fullComponentPath = this.getFullJavaScriptComponentFilePath(localVuePath);
     this.components[localVuePath] = require(fullComponentPath);
   }
 

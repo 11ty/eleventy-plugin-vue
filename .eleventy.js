@@ -1,3 +1,4 @@
+const path = require("path");
 const lodashMerge = require("lodash.merge");
 
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
@@ -21,6 +22,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   let cssManager = options.assets.css || new InlineCodeManager();
 
+  let changedFilesOnWatch = [];
+
   // Only add this filter if you’re not re-using your own asset manager.
   // TODO Add warnings to readme
   // * This will probably only work in a layout template.
@@ -29,10 +32,23 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     return cssManager.getCodeForUrl(url);
   });
 
-  // `beforeWatch` is supported on Eleventy 0.11.0-beta.3 and newer
-  eleventyConfig.on("beforeWatch", () => {
-    cssManager.resetComponentCode();
-    eleventyVue.reset();
+  // `beforeWatch` is available on Eleventy 0.11.0 (beta.3) and newer
+  eleventyConfig.on("beforeWatch", (changedFiles) => {
+    // `changedFiles` array argument is available on Eleventy 1.0+
+    changedFilesOnWatch = (changedFiles || []).filter(file => file.endsWith(".vue"));
+
+    // Only reset what changed! (Partial builds for Vue rollup files)
+    if(changedFilesOnWatch.length) {
+      for(let localVuePath of changedFilesOnWatch) {
+        let jsFilename = eleventyVue.getJavaScriptComponentFile(localVuePath);
+        cssManager.resetComponentCodeFor(jsFilename);
+
+        eleventyVue.resetFor(localVuePath);
+      }
+    } else {
+      cssManager.resetComponentCode();
+      eleventyVue.reset();
+    }
   });
 
   eleventyConfig.addTemplateFormats("vue");
@@ -44,11 +60,17 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       return eleventyVue.getComponent(inputPath);
     },
     init: async function() {
-      eleventyVue.setInputDir(this.config.inputDir, this.config.dir.includes);
+      eleventyVue.setInputDir(this.config.inputDir);
+      eleventyVue.setIncludesDir(path.join(this.config.inputDir, this.config.dir.includes));
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
-      eleventyVue.clearRequireCache();
+      eleventyVue.clearRequireCache(changedFilesOnWatch);
 
-      let output = await eleventyVue.write();
+      let files = changedFilesOnWatch;
+      if(!files || !files.length) {
+        files = await eleventyVue.findFiles();
+      }
+      let bundle = await eleventyVue.getBundle(files);
+      let output = await eleventyVue.write(bundle);
 
       for(let entry of output) {
         let fullVuePath = entry.facadeModuleId;

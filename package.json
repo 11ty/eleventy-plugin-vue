@@ -45,7 +45,7 @@
     ]
   },
   "dependencies": {
-    "@11ty/eleventy-assets": "1.0.3",
+    "@11ty/eleventy-assets": "1.0.4",
     "fast-glob": "^3.2.4",
     "lodash.merge": "^4.6.2",
     "rollup": "^2.22.1",

@@ -5,7 +5,8 @@ const EleventyVue = require("../EleventyVue");
 function getEvInstance() {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache");
-	ev.setInputDir("src", "components");
+	ev.setInputDir("src");
+	ev.setIncludesDir("src/components");
 	return ev;
 }
 
@@ -29,7 +30,8 @@ test("getLocalVueFilePath", t => {
 test("Vue SFC", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache");
-	ev.setInputDir("test/stubs", "components");
+	ev.setInputDir("test/stubs");
+	ev.setIncludesDir("test/stubs/components");
 
 	let files = await ev.findFiles("data.vue");
 	let bundle = await ev.getBundle(files);
