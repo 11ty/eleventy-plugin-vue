@@ -40,7 +40,7 @@ test("Vue SFC Render", async t => {
 
 	ev.createVueComponents(output);
 
-	t.is(output.length, 3);
+	t.is(output.length, 4);
 
 	let component = ev.getComponent("./test/stubs/data.vue");
 
@@ -66,7 +66,7 @@ test("Vue SFC CSS", async t => {
 
 	ev.createVueComponents(output);
 
-	t.is(output.length, 3);
+	t.is(output.length, 4);
 
 	t.is(ev.getCSSForComponent("./test/stubs/data.vue"), `body {
 	background-color: blue;
@@ -81,7 +81,10 @@ body {
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* child.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* grandchild.js Component */
+#grandchild { color: yellow;
+}
+/* child.js Component */
 #child { color: green;
 }
 /* data.js Component */

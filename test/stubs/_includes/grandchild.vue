@@ -1,12 +1,10 @@
 <template>
-  <div id="child"></div>
+  <div id="grandchild"></div>
 </template>
 <style>
-#child { color: green; }
+#grandchild { color: yellow; }
 </style>
 <script>
-import grandchild from "./grandchild.vue";
-
 export default {
   props: {},
   components: {}
