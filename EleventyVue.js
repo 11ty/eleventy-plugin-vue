@@ -139,6 +139,35 @@ class EleventyVue {
     return output;
   }
 
+  // output is returned from .write()
+  createVueComponents(output) {
+    for(let entry of output) {
+      let fullVuePath = entry.facadeModuleId;
+
+      let inputPath = this.getLocalVueFilePath(fullVuePath);
+      let jsFilename = entry.fileName;
+      this.addVueToJavaScriptMapping(inputPath, jsFilename);
+
+      let css = this.getCSSForComponent(inputPath);
+      if(css && this.cssManager) {
+        this.cssManager.addComponentCode(jsFilename, css);
+      }
+
+      let isFullTemplateFile = !this.isIncludeFile(fullVuePath);
+      if(isFullTemplateFile) {
+        this.addComponent(inputPath);
+
+        if(this.cssManager) {
+          // If you import it, it will roll up the imported CSS in the CSS manager
+
+          for(let importFilename of entry.imports) {
+            this.cssManager.addComponentRelationship(jsFilename, importFilename);
+          }
+        }
+      }
+    }
+  }
+
   getLocalVueFilePath(fullPath) {
     let filePath = fullPath;
     if(fullPath.startsWith(this.workingDir)) {
@@ -194,7 +223,6 @@ class EleventyVue {
     }
   }
 
-
   async renderComponent(vueComponent, data, mixin = {}) {
     Vue.mixin(mixin);
 
@@ -224,33 +252,6 @@ class EleventyVue {
 
     // returns a promise
     return renderer.renderToString(app);
-  }
-
-  // output is returned from .write()
-  createVueComponents(output) {
-    for(let entry of output) {
-      let fullVuePath = entry.facadeModuleId;
-      let inputPath = this.getLocalVueFilePath(fullVuePath);
-      let jsFilename = entry.fileName;
-      this.addVueToJavaScriptMapping(inputPath, jsFilename);
-
-      let css = this.getCSSForComponent(inputPath);
-      if(css && this.cssManager) {
-        this.cssManager.addComponentCode(jsFilename, css);
-      }
-
-      let isFullTemplateFile = !this.isIncludeFile(fullVuePath);
-      if(isFullTemplateFile) {
-        this.addComponent(inputPath);
-
-        if(this.cssManager) {
-          // If you import it, it will roll up the imported CSS in the CSS manager
-          for(let importFilename of entry.imports) {
-            this.cssManager.addComponentRelationship(jsFilename, importFilename);
-          }
-        }
-      }
-    }
   }
 }
 

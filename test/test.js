@@ -28,27 +28,19 @@ test("getLocalVueFilePath", t => {
 	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), "./src/components/test.vue");
 });
 
-test("Vue SFC", async t => {
+test("Vue SFC Render", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test");
 	ev.setInputDir("test/stubs");
 	ev.setIncludesDir("test/stubs/components");
-	ev.setCssManager(new InlineCodeManager());
 
-	let files = await ev.findFiles("data.vue");
+	let files = await ev.findFiles();
 	let bundle = await ev.getBundle(files);
 	let output = await ev.write(bundle);
 
-	t.is(output.length, 1);
-
-	t.is(ev.getCSSForComponent("./test/stubs/data.vue"), `body {
-	background-color: blue;
-}
-body {
-	background-color: pink;
-}`);
-	
 	ev.createVueComponents(output);
+
+	t.is(output.length, 3);
 
 	let component = ev.getComponent("./test/stubs/data.vue");
 
@@ -56,5 +48,48 @@ body {
 		page: {
 			url: "/some-url/"
 		}
-	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p></div>`);
+	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p> <div id="child"></div></div>`);
+});
+
+test("Vue SFC CSS", async t => {
+	let ev = new EleventyVue();
+	ev.setCacheDir(".cache/vue-test");
+	ev.setInputDir("test/stubs");
+	ev.setIncludesDir("test/stubs/components");
+
+	let cssMgr = new InlineCodeManager();
+	ev.setCssManager(cssMgr);
+
+	let files = await ev.findFiles();
+	let bundle = await ev.getBundle(files);
+	let output = await ev.write(bundle);
+
+	ev.createVueComponents(output);
+
+	t.is(output.length, 3);
+
+	t.is(ev.getCSSForComponent("./test/stubs/data.vue"), `body {
+	background-color: blue;
+}
+body {
+	background-color: pink;
+}`);
+
+	t.is(ev.getCSSForComponent("./test/stubs/_includes/child.vue"), `#child { color: green;
+}`);
+
+	let componentName = ev.getJavaScriptComponentFile("./test/stubs/data.vue");
+	cssMgr.addComponentForUrl(componentName, "/data/");
+
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* child.js Component */
+#child { color: green;
+}
+/* data.js Component */
+body {
+	background-color: blue;
+}
+body {
+	background-color: pink;
+}`);
+	
 });
