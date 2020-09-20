@@ -21,6 +21,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   eleventyVue.setCacheDir(options.cacheDirectory);
 
   let cssManager = options.assets.css || new InlineCodeManager();
+  eleventyVue.setCssManager(cssManager);
 
   let changedFilesOnWatch = [];
 
@@ -72,27 +73,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       let bundle = await eleventyVue.getBundle(files);
       let output = await eleventyVue.write(bundle);
 
-      for(let entry of output) {
-        let fullVuePath = entry.facadeModuleId;
-        let inputPath = eleventyVue.getLocalVueFilePath(fullVuePath);
-        let jsFilename = entry.fileName;
-        eleventyVue.addVueToJavaScriptMapping(inputPath, jsFilename);
-
-        let css = eleventyVue.getCSSForComponent(inputPath);
-        if(css) {
-          cssManager.addComponentCode(jsFilename, css);
-        }
-
-        let isFullTemplateFile = !eleventyVue.isIncludeFile(fullVuePath);
-        if(isFullTemplateFile) {
-          eleventyVue.addComponent(inputPath);
-
-          // If you import it, it will roll up the imported CSS in the CSS manager
-          for(let importFilename of entry.imports) {
-            cssManager.addComponentRelationship(jsFilename, importFilename);
-          }
-        }
-      }
+      eleventyVue.createVueComponents(output);
     },
     compile: function(str, inputPath) {
       return async (data) => {

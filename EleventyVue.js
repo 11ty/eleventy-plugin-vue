@@ -34,14 +34,22 @@ class EleventyVue {
     this.vueFileToCSSMap[localVuePath] = [];
   }
 
+  setCssManager(cssManager) {
+    this.cssManager = cssManager;
+  }
+
   setRollupPluginVueOptions(rollupPluginVueOptions) {
-    this.rollupPluginVueOptions = lodashMerge({
+    this.rollupPluginVueOptions = rollupPluginVueOptions;
+  }
+
+  getRollupPluginVueOptions() {
+    return lodashMerge({
       css: false,
       template: {
         optimizeSSR: true
       }
       // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
-    }, rollupPluginVueOptions);
+    }, this.rollupPluginVueOptions);
   }
 
   setInputDir(inputDir) {
@@ -106,7 +114,7 @@ class EleventyVue {
             }
           }
         }),
-        rollupPluginVue(this.rollupPluginVueOptions)
+        rollupPluginVue(this.getRollupPluginVueOptions())
       ]
     });
 
@@ -216,6 +224,33 @@ class EleventyVue {
 
     // returns a promise
     return renderer.renderToString(app);
+  }
+
+  // output is returned from .write()
+  createVueComponents(output) {
+    for(let entry of output) {
+      let fullVuePath = entry.facadeModuleId;
+      let inputPath = this.getLocalVueFilePath(fullVuePath);
+      let jsFilename = entry.fileName;
+      this.addVueToJavaScriptMapping(inputPath, jsFilename);
+
+      let css = this.getCSSForComponent(inputPath);
+      if(css && this.cssManager) {
+        this.cssManager.addComponentCode(jsFilename, css);
+      }
+
+      let isFullTemplateFile = !this.isIncludeFile(fullVuePath);
+      if(isFullTemplateFile) {
+        this.addComponent(inputPath);
+
+        if(this.cssManager) {
+          // If you import it, it will roll up the imported CSS in the CSS manager
+          for(let importFilename of entry.imports) {
+            this.cssManager.addComponentRelationship(jsFilename, importFilename);
+          }
+        }
+      }
+    }
   }
 }
 

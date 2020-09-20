@@ -1,5 +1,6 @@
 const test = require("ava");
 const path = require("path");
+const { InlineCodeManager } = require("@11ty/eleventy-assets");
 const EleventyVue = require("../EleventyVue");
 
 function getEvInstance() {
@@ -29,9 +30,10 @@ test("getLocalVueFilePath", t => {
 
 test("Vue SFC", async t => {
 	let ev = new EleventyVue();
-	ev.setCacheDir(".cache");
+	ev.setCacheDir(".cache/vue-test");
 	ev.setInputDir("test/stubs");
 	ev.setIncludesDir("test/stubs/components");
+	ev.setCssManager(new InlineCodeManager());
 
 	let files = await ev.findFiles("data.vue");
 	let bundle = await ev.getBundle(files);
@@ -39,17 +41,20 @@ test("Vue SFC", async t => {
 
 	t.is(output.length, 1);
 
-	let components = [];
-	for(let entry of output) {
-		let inputPath = ev.getLocalVueFilePath(entry.facadeModuleId);
-		ev.addVueToJavaScriptMapping(inputPath, entry.fileName);
-		ev.addComponent(inputPath);
-		components.push(ev.getComponent(inputPath));
-	}
+	t.is(ev.getCSSForComponent("./test/stubs/data.vue"), `body {
+	background-color: blue;
+}
+body {
+	background-color: pink;
+}`);
+	
+	ev.createVueComponents(output);
 
-	t.is(await ev.renderComponent(components[0], {
+	let component = ev.getComponent("./test/stubs/data.vue");
+
+	t.is(await ev.renderComponent(component, {
 		page: {
 			url: "/some-url/"
 		}
 	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p></div>`);
-})
+});
