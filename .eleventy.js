@@ -25,8 +25,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let cssManager = options.assets.css || new InlineCodeManager();
   eleventyVue.setCssManager(cssManager);
 
-  let componentCount = 0;
   let changedFilesOnWatch = [];
+  let skipVueBuild = false;
 
   // Only add this filter if you’re not re-using your own asset manager.
   // TODO Add warnings to readme
@@ -49,7 +49,8 @@ Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.ve
     changedFilesOnWatch = (changedFiles || []).filter(file => file.endsWith(".vue"));
 
     // Only reset what changed! (Partial builds for Vue rollup files)
-    if(changedFilesOnWatch.length) {
+    if(changedFilesOnWatch.length > 0) {
+      skipVueBuild = false;
       for(let localVuePath of changedFilesOnWatch) {
         let jsFilename = eleventyVue.getJavaScriptComponentFile(localVuePath);
         cssManager.resetComponentCodeFor(jsFilename);
@@ -57,8 +58,12 @@ Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.ve
         eleventyVue.resetFor(localVuePath);
       }
     } else {
-      cssManager.resetComponentCode();
-      eleventyVue.reset();
+      if(changedFiles && changedFiles.length > 0) {
+        skipVueBuild = true;
+      }
+      // TODO reset all if incremental not enabled
+      // cssManager.resetComponentCode();
+      // eleventyVue.reset();
     }
   });
 
@@ -74,16 +79,22 @@ Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.ve
       eleventyVue.setInputDir(this.config.inputDir);
       eleventyVue.setIncludesDir(path.join(this.config.inputDir, this.config.dir.includes));
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
-      eleventyVue.clearRequireCache(changedFilesOnWatch);
 
-      let files = changedFilesOnWatch;
-      if(!files || !files.length) {
-        files = await eleventyVue.findFiles();
+      if(skipVueBuild) {
+        // for write count
+        eleventyVue.createVueComponents([]);
+      } else {
+        eleventyVue.clearRequireCache(changedFilesOnWatch);
+
+        let files = changedFilesOnWatch;
+        if(!files || !files.length) {
+          files = await eleventyVue.findFiles();
+        }
+        let bundle = await eleventyVue.getBundle(files);
+        let output = await eleventyVue.write(bundle);
+  
+        eleventyVue.createVueComponents(output);
       }
-      let bundle = await eleventyVue.getBundle(files);
-      let output = await eleventyVue.write(bundle);
-
-      eleventyVue.createVueComponents(output);
     },
     compile: function(str, inputPath) {
       return async (data) => {
