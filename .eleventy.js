@@ -5,6 +5,8 @@ const { InlineCodeManager } = require("@11ty/eleventy-assets");
 
 const EleventyVue = require("./EleventyVue");
 
+const pkg = require("./package.json");
+
 const globalOptions = {
   cacheDirectory: ".cache/vue/",
   // See https://rollup-plugin-vue.vuejs.org/options.html
@@ -23,6 +25,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let cssManager = options.assets.css || new InlineCodeManager();
   eleventyVue.setCssManager(cssManager);
 
+  let componentCount = 0;
   let changedFilesOnWatch = [];
 
   // Only add this filter if you’re not re-using your own asset manager.
@@ -31,6 +34,13 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   // * Probably complications with components that are only used in a layout template.
   eleventyConfig.addFilter("getVueComponentCssForPage", (url) => {
     return cssManager.getCodeForUrl(url);
+  });
+
+  // TODO check if verbose mode for console.log
+  eleventyConfig.on("afterBuild", () => {
+    let count = eleventyVue.componentsWriteCount;
+    console.log( `---
+Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version})` );
   });
 
   // `beforeWatch` is available on Eleventy 0.11.0 (beta.3) and newer

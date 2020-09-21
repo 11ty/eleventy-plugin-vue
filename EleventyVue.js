@@ -24,6 +24,8 @@ class EleventyVue {
       exports: "default",
       // dir: this.cacheDir
     };
+
+    this.componentsWriteCount = 0;
   }
 
   reset() {
@@ -141,6 +143,7 @@ class EleventyVue {
 
   // output is returned from .write()
   createVueComponents(output) {
+    this.componentsWriteCount = 0;
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
 
@@ -165,6 +168,7 @@ class EleventyVue {
           }
         }
       }
+      this.componentsWriteCount++;
     }
   }
 
