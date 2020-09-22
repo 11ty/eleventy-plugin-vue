@@ -17,7 +17,6 @@ class EleventyVue {
 
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
-    this.components = {};
 
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
@@ -74,19 +73,11 @@ class EleventyVue {
   clearRequireCache(localVuePaths = []) {
     let fullCacheDir = path.join(this.workingDir, this.cacheDir);
 
-    let hasWatchFiles = !!localVuePaths.length;
-    let fullJsFilePathMap = {};
-    for(let file of localVuePaths) {
-      if(file.endsWith(".vue")) {
-        fullJsFilePathMap[this.getFullJavaScriptComponentFilePath(file)] = true;
-      }
-    }
-
     let deleteCount = 0;
     for(let fullPath in require.cache) {
-      if(!hasWatchFiles && fullPath.startsWith(fullCacheDir) ||
-        hasWatchFiles && fullJsFilePathMap[fullPath]) {
+      if(fullPath.startsWith(fullCacheDir)) {
         deleteCount++;
+        // console.log( "Deleting from cache", fullPath );
         delete require.cache[fullPath];
       }
     }
@@ -158,8 +149,6 @@ class EleventyVue {
 
       let isFullTemplateFile = !this.isIncludeFile(fullVuePath);
       if(isFullTemplateFile) {
-        this.addComponent(inputPath);
-
         if(this.cssManager) {
           // If you import it, it will roll up the imported CSS in the CSS manager
 
@@ -210,21 +199,9 @@ class EleventyVue {
     return fullComponentPath;
   }
 
-  /* Component Cache */
-  addComponent(localVuePath) {
-    let fullComponentPath = this.getFullJavaScriptComponentFilePath(localVuePath);
-    this.components[localVuePath] = require(fullComponentPath);
-  }
-
   getComponent(localVuePath) {
-    this.ensureComponent(localVuePath);
-    return this.components[localVuePath];
-  }
-
-  ensureComponent(localVuePath) {
-    if(!(localVuePath in this.components)) {
-      throw new Error(`"${localVuePath}" is not a valid Vue template.`);
-    }
+    let fullComponentPath = this.getFullJavaScriptComponentFilePath(localVuePath);
+    return require(fullComponentPath);
   }
 
   async renderComponent(vueComponent, data, mixin = {}) {

@@ -97,6 +97,7 @@ Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.ve
       }
     },
     compile: function(str, inputPath) {
+      // TODO this runs twice per template
       return async (data) => {
         let vueComponent = eleventyVue.getComponent(data.page.inputPath);
 
