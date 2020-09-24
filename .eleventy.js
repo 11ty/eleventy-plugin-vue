@@ -99,6 +99,12 @@ Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.ve
     compile: function(str, inputPath) {
       // TODO this runs twice per template
       return async (data) => {
+        if (str) {
+          // since `read: false` is set 11ty doesn't read file contents
+          // so if str has a value, it's a permalink (which can be a string or a function)
+          return typeof str === "function" ? str(data) : str;
+        }
+        
         let vueComponent = eleventyVue.getComponent(data.page.inputPath);
 
         let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);
