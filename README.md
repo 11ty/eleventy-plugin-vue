@@ -1,7 +1,5 @@
 # eleventy-plugin-vue
 
-_⚠️ Work in progress!!_
-
 ## Installation
 
 ```sh
