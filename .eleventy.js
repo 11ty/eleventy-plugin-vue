@@ -39,13 +39,14 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   // TODO check if verbose mode for console.log
   eleventyConfig.on("afterBuild", () => {
     let count = eleventyVue.componentsWriteCount;
-    console.log( `---
-Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version})` );
+    if(count > 0) {
+      console.log( `Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version})` );
+    }
   });
 
-  // `beforeWatch` is available on Eleventy 0.11.0 (beta.3) and newer
+  // `beforeWatch` is available on Eleventy 0.11.0 and newer
   eleventyConfig.on("beforeWatch", (changedFiles) => {
-    // `changedFiles` array argument is available on Eleventy 1.0+
+    // `changedFiles` array argument is available on Eleventy 0.11.1+
     changedFilesOnWatch = (changedFiles || []).filter(file => file.endsWith(".vue"));
 
     // Only reset what changed! (Partial builds for Vue rollup files)
@@ -99,12 +100,16 @@ Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.ve
     compile: function(str, inputPath) {
       // TODO this runs twice per template
       return async (data) => {
+        // since `read: false` is set 11ty doesn't read file contents
+        // so if str has a value, it's a permalink (which can be a string or a function)
+        // currently Vue template syntax in permalink string is not supported.
         if (str) {
-          // since `read: false` is set 11ty doesn't read file contents
-          // so if str has a value, it's a permalink (which can be a string or a function)
-          return typeof str === "function" ? str(data) : str;
+          if(typeof str === "function") {
+            return await str(data);
+          }
+          return str;
         }
-        
+
         let vueComponent = eleventyVue.getComponent(data.page.inputPath);
 
         let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);

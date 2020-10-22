@@ -25,7 +25,8 @@ export default {
 	data: () => {
 		return {
 			layout: "layout.njk",
-			test: "HELLO"
+			test: "HELLO",
+			permalink: "/testing/testing/"
 		};
 	},
 	components: {

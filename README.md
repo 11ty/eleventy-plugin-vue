@@ -8,8 +8,9 @@ _⚠️ Work in progress!!_
 npm install @11ty/eleventy-plugin-vue
 ```
 
+* `0.2.x` is encouraged to use Eleventy `0.11.1` or newer (for incremental Vue component builds)
+* `0.1.x` requires Eleventy `0.11.0` or newer
 * `0.0.x` requires Eleventy 0.11.0 Beta 2 or above (`0.11.0-beta.2`)
-* `0.1.x` requires Eleventy 0.11.0 Stable or newer (`0.11.0`)
 
 * Requires experimental features in Eleventy, specifically: [Custom File Extension Handlers feature from Eleventy](https://github.com/11ty/eleventy/issues/117). Opt in to experimental features on Eleventy by running `ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy`.
 
