@@ -1,5 +1,9 @@
 # eleventy-plugin-vue
 
+Zero bundle size server-rendered components for Vue.js.
+
+Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and Vue, a match made to power Netlify.com](https://www.netlify.com/blog/2020/09/18/eleventy-and-vue-a-match-made-to-power-netlify.com/)
+
 ## Installation
 
 ```sh
