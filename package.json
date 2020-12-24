@@ -46,16 +46,16 @@
   },
   "dependencies": {
     "@11ty/eleventy-assets": "1.0.4",
+    "@vue/compiler-sfc": "^3.0.4",
+    "@vue/server-renderer": "^3.0.4",
     "fast-glob": "^3.2.4",
     "lodash.merge": "^4.6.2",
-    "rollup": "^2.32.1",
-    "rollup-plugin-css-only": "^2.1.0",
-    "rollup-plugin-vue": "^5.1.9",
-    "vue": "^2.6.12",
-    "vue-server-renderer": "^2.6.12",
-    "vue-template-compiler": "^2.6.12"
+    "rollup": "^2.35.1",
+    "rollup-plugin-css-only": "^3.1.0",
+    "rollup-plugin-vue": "^6.0.0",
+    "vue": "^3.0.4"
   },
   "devDependencies": {
-    "ava": "^3.13.0"
+    "ava": "^3.14.0"
   }
 }

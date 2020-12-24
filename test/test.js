@@ -48,7 +48,7 @@ test("Vue SFC Render", async t => {
 		page: {
 			url: "/some-url/"
 		}
-	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p> <div id="child"></div></div>`);
+	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"></div></div>`);
 });
 
 test("Vue SFC CSS", async t => {
@@ -75,18 +75,15 @@ body {
 	background-color: pink;
 }`);
 
-	t.is(ev.getCSSForComponent("./test/stubs/_includes/child.vue"), `#child { color: green;
-}`);
+	t.is(ev.getCSSForComponent("./test/stubs/_includes/child.vue"), `#child { color: green; }`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
 	t.is(cssMgr.getCodeForUrl("/data/"), `/* grandchild.js Component */
-#grandchild { color: yellow;
-}
+#grandchild { color: yellow; }
 /* child.js Component */
-#child { color: green;
-}
+#child { color: green; }
 /* data.js Component */
 body {
 	background-color: blue;

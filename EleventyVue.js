@@ -6,9 +6,8 @@ const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCssOnly = require("rollup-plugin-css-only");
 
-const Vue = require("vue");
-const vueServerRenderer = require("vue-server-renderer");
-const renderer = vueServerRenderer.createRenderer();
+const { createSSRApp } = require('vue')
+const { renderToString } = require('@vue/server-renderer');
 
 class EleventyVue {
   constructor(cacheDirectory) {
@@ -45,6 +44,7 @@ class EleventyVue {
 
   getRollupPluginVueOptions() {
     return lodashMerge({
+      target: "node",
       css: false,
       template: {
         optimizeSSR: true
@@ -99,6 +99,7 @@ class EleventyVue {
 
     let bundle = await rollup.rollup({
       input: input,
+      external: ["vue", "@vue/server-renderer"],
       plugins: [
         rollupPluginCssOnly({
           output: (styles, styleNodes) => {
@@ -137,11 +138,9 @@ class EleventyVue {
     this.componentsWriteCount = 0;
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
-
       let inputPath = this.getLocalVueFilePath(fullVuePath);
       let jsFilename = entry.fileName;
       this.addVueToJavaScriptMapping(inputPath, jsFilename);
-
       let css = this.getCSSForComponent(inputPath);
       if(css && this.cssManager) {
         this.cssManager.addComponentCode(jsFilename, css);
@@ -205,20 +204,6 @@ class EleventyVue {
   }
 
   async renderComponent(vueComponent, data, mixin = {}) {
-    Vue.mixin(mixin);
-
-    // We don’t use a local mixin for this because it’s global to all components
-    // We don’t use a global mixin for this because modifies the Vue object and
-    // leaks into other templates (reports wrong page.url!)
-    if(!("page" in Vue.prototype)) {
-      Object.defineProperty(Vue.prototype, "page", {
-        get () {
-          // https://vuejs.org/v2/api/#vm-root
-          return this.$root.$options.data().page;
-        }
-      });
-    }
-
     // Full data cascade is available to the root template component
     if(!vueComponent.mixins) {
       vueComponent.mixins = [];
@@ -229,10 +214,20 @@ class EleventyVue {
       },
     });
 
-    const app = new Vue(vueComponent);
+    const app = createSSRApp(vueComponent);
+    
+    // Add page data:
+    if(!mixin.computed) {
+      mixin.computed = {};
+    }
+    mixin.computed.page = function() {
+      return data.page;
+    };
+
+    app.mixin(mixin);
 
     // returns a promise
-    return renderer.renderToString(app);
+    return renderToString(app);
   }
 }
 
