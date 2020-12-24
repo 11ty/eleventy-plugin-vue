@@ -35,12 +35,13 @@ test("Vue SFC Render", async t => {
 	ev.setIncludesDir("test/stubs/components");
 
 	let files = await ev.findFiles();
+	t.is(files.length, 3);
 	let bundle = await ev.getBundle(files);
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
 
-	t.is(output.length, 4);
+	t.is(output.length, 3);
 
 	let component = ev.getComponent("./test/stubs/data.vue");
 
@@ -61,12 +62,12 @@ test("Vue SFC CSS", async t => {
 	ev.setCssManager(cssMgr);
 
 	let files = await ev.findFiles();
+	t.is(files.length, 3);
 	let bundle = await ev.getBundle(files);
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-
-	t.is(output.length, 4);
+	t.is(output.length, 3);
 
 	t.is(ev.getCSSForComponent("./test/stubs/data.vue"), `body {
 	background-color: blue;

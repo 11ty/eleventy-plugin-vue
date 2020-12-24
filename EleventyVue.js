@@ -2,6 +2,7 @@ const path = require("path");
 const fastglob = require("fast-glob");
 const lodashMerge = require("lodash.merge");
 
+const debug = require("debug")("Eleventy:Vue");
 const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCssOnly = require("rollup-plugin-css-only");
@@ -97,6 +98,8 @@ class EleventyVue {
       input = await this.findFiles();
     }
 
+    debug("input files: %o", input);
+
     let bundle = await rollup.rollup({
       input: input,
       external: ["vue", "@vue/server-renderer"],
@@ -112,12 +115,13 @@ class EleventyVue {
       ]
     });
 
+    debug("bundle: %o", bundle);
+
     return bundle;
   }
 
-  // async generateFromBundle(bundle) {
+  // async generate(bundle) {
   //   let { output } = await bundle.generate(this.rollupBundleOptions);
-
   //   return output;
   // }
 

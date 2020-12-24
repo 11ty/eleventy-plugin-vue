@@ -48,6 +48,7 @@
     "@11ty/eleventy-assets": "1.0.4",
     "@vue/compiler-sfc": "^3.0.4",
     "@vue/server-renderer": "^3.0.4",
+    "debug": "^4.3.1",
     "fast-glob": "^3.2.4",
     "lodash.merge": "^4.6.2",
     "rollup": "^2.35.1",
