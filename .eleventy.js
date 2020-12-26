@@ -73,6 +73,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       }
     },
     compile: function(str, inputPath) {
+      if (str && str != '') {
+        return async (data) => {
+          return Promise.resolve(typeof(str) === 'function' ? str(data) : str)
+        }
+      }
       return async (data) => {
         let vueComponent = eleventyVue.getComponent(data.page.inputPath);
 
