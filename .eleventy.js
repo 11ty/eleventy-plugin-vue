@@ -44,7 +44,9 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       return eleventyVue.getComponent(inputPath);
     },
     init: async function() {
-      eleventyVue.setInputDir(this.config.inputDir, this.config.dir.includes);
+      eleventyVue.setInputDir(this.config.inputDir);
+      eleventyVue.setIncludesDir(this.config.dir.includes);
+      eleventyVue.setLayoutsDir(this.config.dir.layouts);
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
       eleventyVue.clearRequireCache();
 

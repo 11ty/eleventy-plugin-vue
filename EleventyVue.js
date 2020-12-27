@@ -40,9 +40,16 @@ class EleventyVue {
     }, rollupPluginVueOptions);
   }
 
-  setInputDir(inputDir, includesDir) {
+  setInputDir(inputDir) {
     this.inputDir = path.join(this.workingDir, inputDir);
+  }
+
+  setIncludesDir(includesDir) {
     this.includesDir = path.join(this.inputDir, includesDir);
+  }
+
+  setLayoutsDir(layoutsDir) {
+    this.layoutsDir = path.join(this.inputDir, layoutsDir);
   }
 
   setCacheDir(cacheDir) {
@@ -73,6 +80,11 @@ class EleventyVue {
     if(!this.includesDir.startsWith(this.inputDir)) {
       globPath.push(
         path.join(this.includesDir, glob)
+      );
+    }
+    if(!this.layoutsDir.startsWith(this.inputDir)) {
+      globPath.push(
+        path.join(this.layoutsDir, glob)
       );
     }
     return fastglob(globPath, {
@@ -203,3 +215,4 @@ class EleventyVue {
 }
 
 module.exports = EleventyVue;
+
