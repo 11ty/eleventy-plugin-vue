@@ -1,5 +1,5 @@
 <template>
-  <div id="child"></div>
+  <div id="child"><span>Test</span></div>
 </template>
 <style>
 #child { color: green; }

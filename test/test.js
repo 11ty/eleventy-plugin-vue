@@ -49,7 +49,7 @@ test("Vue SFC Render", async t => {
 		page: {
 			url: "/some-url/"
 		}
-	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"></div></div>`);
+	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"><span>Test</span></div></div>`);
 });
 
 test("Vue SFC CSS", async t => {

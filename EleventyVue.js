@@ -7,8 +7,8 @@ const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCssOnly = require("rollup-plugin-css-only");
 
-const { createSSRApp } = require('vue')
-const { renderToString } = require('@vue/server-renderer');
+const { createSSRApp } = require("vue");
+const { renderToString } = require("@vue/server-renderer");
 
 class EleventyVue {
   constructor(cacheDirectory) {
@@ -102,7 +102,10 @@ class EleventyVue {
 
     let bundle = await rollup.rollup({
       input: input,
-      external: ["vue", "@vue/server-renderer"],
+      external: [
+        "vue",
+        "@vue/server-renderer"
+      ],
       plugins: [
         rollupPluginCssOnly({
           output: (styles, styleNodes) => {
@@ -131,7 +134,6 @@ class EleventyVue {
     }
 
     let { output } = await bundle.write(this.rollupBundleOptions);
-
     output = output.filter(entry => !!entry.facadeModuleId);
 
     return output;
@@ -204,7 +206,12 @@ class EleventyVue {
 
   getComponent(localVuePath) {
     let fullComponentPath = this.getFullJavaScriptComponentFilePath(localVuePath);
-    return require(fullComponentPath);
+    try {
+      let reqd = require(fullComponentPath);
+      return reqd;
+    } catch(e) {
+      console.log( "Eleventy Vue getComponent error: ", e );
+    }
   }
 
   async renderComponent(vueComponent, data, mixin = {}) {

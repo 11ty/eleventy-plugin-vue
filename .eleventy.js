@@ -91,10 +91,17 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         if(!files || !files.length) {
           files = await eleventyVue.findFiles();
         }
-        let bundle = await eleventyVue.getBundle(files);
-        let output = await eleventyVue.write(bundle);
-  
-        eleventyVue.createVueComponents(output);
+        try {
+          let bundle = await eleventyVue.getBundle(files);
+          let output = await eleventyVue.write(bundle);
+    
+          eleventyVue.createVueComponents(output);
+        } catch(e) {
+          if(e.loc) {
+            e.message = `Error in Vue file ${e.loc.file} on Line ${e.loc.line} Column ${e.loc.column}: ${e.message}`
+          }
+          throw e;
+        }
       }
     },
     compile: function(str, inputPath) {
