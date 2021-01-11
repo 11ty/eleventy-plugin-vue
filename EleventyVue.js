@@ -70,7 +70,7 @@ class EleventyVue {
     return filepath.startsWith(this.includesDir);
   }
 
-  clearRequireCache(localVuePaths = []) {
+  clearRequireCache() {
     let fullCacheDir = path.join(this.workingDir, this.cacheDir);
 
     let deleteCount = 0;

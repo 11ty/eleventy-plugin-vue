@@ -85,7 +85,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         // for write count
         eleventyVue.createVueComponents([]);
       } else {
-        eleventyVue.clearRequireCache(changedFilesOnWatch);
+        eleventyVue.clearRequireCache();
 
         let files = changedFilesOnWatch;
         if(!files || !files.length) {
