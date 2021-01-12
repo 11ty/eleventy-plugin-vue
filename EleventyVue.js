@@ -10,6 +10,8 @@ const Vue = require("vue");
 const vueServerRenderer = require("vue-server-renderer");
 const renderer = vueServerRenderer.createRenderer();
 
+const debug = require("debug")("EleventyVue");
+
 class EleventyVue {
   constructor(cacheDirectory) {
     this.workingDir = path.resolve(".");
@@ -72,16 +74,15 @@ class EleventyVue {
 
   clearRequireCache() {
     let fullCacheDir = path.join(this.workingDir, this.cacheDir);
-
     let deleteCount = 0;
     for(let fullPath in require.cache) {
       if(fullPath.startsWith(fullCacheDir)) {
         deleteCount++;
-        // console.log( "Deleting from cache", fullPath );
+        debug( "Deleting from require cache: %o", fullPath );
         delete require.cache[fullPath];
       }
     }
-    // console.log( `Deleted ${deleteCount} vue components from require.cache.` );
+    debug( "Deleted %o vue components from require.cache.", deleteCount );
   }
 
   async findFiles(glob = "**/*.vue") {
@@ -96,6 +97,8 @@ class EleventyVue {
     if(!input) {
       input = await this.findFiles();
     }
+
+    debug("Passed %o Vue files to getBundle", input.length);
 
     let bundle = await rollup.rollup({
       input: input,
@@ -134,6 +137,7 @@ class EleventyVue {
 
   // output is returned from .write()
   createVueComponents(output) {
+    debug("Created %o Vue components", output.length);
     this.componentsWriteCount = 0;
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
@@ -146,7 +150,6 @@ class EleventyVue {
       if(css && this.cssManager) {
         this.cssManager.addComponentCode(jsFilename, css);
       }
-
       let isFullTemplateFile = !this.isIncludeFile(fullVuePath);
       if(isFullTemplateFile) {
         if(this.cssManager) {
@@ -157,6 +160,8 @@ class EleventyVue {
           }
         }
       }
+
+      debug("Created %o from %o" + (css ? " w/ CSS" : "") + (isFullTemplateFile ? " (Vue page template)" : " (Vue component)"), jsFilename, inputPath);
       this.componentsWriteCount++;
     }
   }
