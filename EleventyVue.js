@@ -23,10 +23,31 @@ class EleventyVue {
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
       exports: "default",
-      // dir: this.cacheDir
+      // dir: this.cacheDir,
+      entryFileNames: (chunkInfo) => {
+        if(chunkInfo.facadeModuleId.endsWith(".vue")) {
+          let filename = this.getEntryFileName(chunkInfo.facadeModuleId);
+          return filename;
+        }
+        return "[name].js";
+      }
     };
 
     this.componentsWriteCount = 0;
+  }
+  
+  getEntryFileName(localpath) {
+    if(localpath.endsWith(".vue")) {
+      localpath = localpath.substr(0, localpath.length - 4) + ".js";
+    }
+    if(localpath.startsWith(this.workingDir)) {
+      localpath = localpath.substr(this.workingDir.length);
+    }
+    let split = localpath.split(path.sep);
+    if(!split[0]) {
+      split.shift();
+    }
+    return split.join("__");
   }
 
   reset() {
