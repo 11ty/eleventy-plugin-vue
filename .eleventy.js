@@ -1,5 +1,6 @@
 const path = require("path");
 const lodashMerge = require("lodash.merge");
+const debug = require("debug")("EleventyVue");
 
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
 
@@ -25,7 +26,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let cssManager = options.assets.css || new InlineCodeManager();
   eleventyVue.setCssManager(cssManager);
 
-  let changedFilesOnWatch = [];
+  let changedVueFilesOnWatch = [];
   let skipVueBuild = false;
 
   // Only add this filter if you’re not re-using your own asset manager.
@@ -33,6 +34,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   // * This will probably only work in a layout template.
   // * Probably complications with components that are only used in a layout template.
   eleventyConfig.addFilter("getVueComponentCssForPage", (url) => {
+    let components = cssManager.getComponentListForUrl(url);
+    debug("Component for %o %o: %O", url, components.length, components);
     return cssManager.getCodeForUrl(url);
   });
 
@@ -46,20 +49,22 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   // `beforeWatch` is available on Eleventy 0.11.0 and newer
   eleventyConfig.on("beforeWatch", (changedFiles) => {
+    let hasChangedFiles = changedFiles && changedFiles.length > 0;
+
     // `changedFiles` array argument is available on Eleventy 0.11.1+
-    changedFilesOnWatch = (changedFiles || []).filter(file => file.endsWith(".vue"));
+    changedVueFilesOnWatch = (changedFiles || []).filter(file => file.endsWith(".vue"));
 
     // Only reset what changed! (Partial builds for Vue rollup files)
-    if(changedFilesOnWatch.length > 0) {
+    if(changedVueFilesOnWatch.length > 0) {
       skipVueBuild = false;
-      for(let localVuePath of changedFilesOnWatch) {
+      for(let localVuePath of changedVueFilesOnWatch) {
         let jsFilename = eleventyVue.getJavaScriptComponentFile(localVuePath);
         cssManager.resetComponentCodeFor(jsFilename);
 
         eleventyVue.resetFor(localVuePath);
       }
     } else {
-      if(changedFiles && changedFiles.length > 0) {
+      if(hasChangedFiles) {
         skipVueBuild = true;
       }
       // TODO reset all if incremental not enabled
@@ -87,7 +92,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       } else {
         eleventyVue.clearRequireCache();
 
-        let files = changedFilesOnWatch;
+        let files = changedVueFilesOnWatch;
         if(!files || !files.length) {
           files = await eleventyVue.findFiles();
         }
@@ -113,6 +118,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         let vueComponent = eleventyVue.getComponent(data.page.inputPath);
 
         let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);
+        debug("Vue CSS: Adding component %o to %o", componentName, data.page.url);
         cssManager.addComponentForUrl(componentName, data.page.url);
 
         let vueMixin = {
