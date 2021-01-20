@@ -39,8 +39,7 @@ test("Vue SFC Render", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-
-	t.is(output.length, 4);
+	t.is(output.length, 3);
 
 	let component = ev.getComponent("./test/stubs/data.vue");
 
@@ -65,8 +64,7 @@ test("Vue SFC CSS", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-
-	t.is(output.length, 4);
+	t.is(output.length, 3);
 
 	t.is(ev.getCSSForComponent("./test/stubs/data.vue"), `body {
 	background-color: blue;

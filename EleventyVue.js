@@ -150,18 +150,22 @@ class EleventyVue {
       if(css && this.cssManager) {
         this.cssManager.addComponentCode(jsFilename, css);
       }
-      let isFullTemplateFile = !this.isIncludeFile(fullVuePath);
-      if(isFullTemplateFile) {
-        if(this.cssManager) {
-          // If you import it, it will roll up the imported CSS in the CSS manager
 
-          for(let importFilename of entry.imports) {
-            this.cssManager.addComponentRelationship(jsFilename, importFilename);
+      if(this.cssManager) {
+        // If you import it, it will roll up the imported CSS in the CSS manager
+        let directImports = entry.importedBindings || {};
+        for(let importFilename in directImports) {
+          for(let key of directImports[importFilename]) {
+            if(key === "default" || key === "normalizeComponent") {
+              this.cssManager.addComponentRelationship(jsFilename, importFilename);
+            } else if(key === "__vue_component__") {
+              this.cssManager.addComponentRelationship(importFilename, jsFilename);
+            }
           }
         }
       }
 
-      debug("Created %o from %o" + (css ? " w/ CSS" : "") + (isFullTemplateFile ? " (Vue page template)" : " (Vue component)"), jsFilename, inputPath);
+      debug("Created %o from %o" + (css ? " w/ CSS" : ""), jsFilename, inputPath);
       this.componentsWriteCount++;
     }
   }
