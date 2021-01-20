@@ -1,6 +1,6 @@
 {
   "name": "@11ty/eleventy-plugin-vue",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Use Vue.js single file components in Eleventy.",
   "publishConfig": {
     "access": "public"
@@ -8,7 +8,7 @@
   "main": ".eleventy.js",
   "scripts": {
     "test": "ava",
-    "sample": "ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy --input=test/sample"
+    "sample": "ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy --input=test/sample --serve"
   },
   "repository": {
     "type": "git",
@@ -45,7 +45,7 @@
     ]
   },
   "dependencies": {
-    "@11ty/eleventy-assets": "1.0.4",
+    "@11ty/eleventy-assets": "^1.0.5",
     "debug": "^4.3.1",
     "fast-glob": "^3.2.4",
     "lodash.merge": "^4.6.2",
