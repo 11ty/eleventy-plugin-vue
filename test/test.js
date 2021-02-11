@@ -79,13 +79,13 @@ body {
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* grandchild.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* test__stubs___includes__grandchild.js Component */
 #grandchild { color: yellow;
 }
-/* child.js Component */
+/* test__stubs___includes__child.js Component */
 #child { color: green;
 }
-/* data.js Component */
+/* test__stubs__data.js Component */
 body {
 	background-color: blue;
 }
