@@ -82,7 +82,7 @@ class EleventyVue {
 
   // TODO only do this for watch/serve
   clearRequireCache() {
-    let fullCacheDir = getFullCacheDir();
+    let fullCacheDir = this.getFullCacheDir();
     let deleteCount = 0;
     for(let fullPath in require.cache) {
       if(fullPath.startsWith(fullCacheDir)) {
