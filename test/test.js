@@ -20,6 +20,12 @@ test("Directories", t => {
 	t.is(ev.isIncludeFile(path.join(ev.inputDir, "test.vue")), false);
 });
 
+test("Can use absolute path for cache directory", t => {
+	let ev = getEvInstance();
+	ev.setCacheDir("/tmp");
+	t.is(ev.getFullCacheDir(), "/tmp");
+});
+
 test("getLocalVueFilePath", t => {
 	let ev = getEvInstance();
 	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue")), "./src/test.vue");
