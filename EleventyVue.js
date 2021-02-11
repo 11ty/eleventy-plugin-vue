@@ -15,7 +15,6 @@ const debug = require("debug")("EleventyVue");
 class EleventyVue {
   constructor(cacheDirectory) {
     this.workingDir = path.resolve(".");
-    this.cacheDir = cacheDirectory;
 
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
@@ -23,8 +22,10 @@ class EleventyVue {
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
       exports: "default",
-      // dir: this.cacheDir
+      // dir: this.cacheDir // set via setCacheDir
     };
+    
+    this.setCacheDir(cacheDirectory);
 
     this.componentsWriteCount = 0;
   }
@@ -68,12 +69,20 @@ class EleventyVue {
     this.rollupBundleOptions.dir = cacheDir;
   }
 
+  getFullCacheDir() {
+    if(this.cacheDir.startsWith("/")) {
+      return this.cacheDir;
+    }
+    return path.join(this.workingDir, this.cacheDir);
+  }
+
   isIncludeFile(filepath) {
     return filepath.startsWith(this.includesDir);
   }
 
+  // TODO only do this for watch/serve
   clearRequireCache() {
-    let fullCacheDir = path.join(this.workingDir, this.cacheDir);
+    let fullCacheDir = getFullCacheDir();
     let deleteCount = 0;
     for(let fullPath in require.cache) {
       if(fullPath.startsWith(fullCacheDir)) {
@@ -204,7 +213,7 @@ class EleventyVue {
 
   getFullJavaScriptComponentFilePath(localVuePath) {
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
-    let fullComponentPath = path.join(this.workingDir, this.cacheDir, jsFilename);
+    let fullComponentPath = path.join(this.getFullCacheDir(), jsFilename);
     return fullComponentPath;
   }
 
