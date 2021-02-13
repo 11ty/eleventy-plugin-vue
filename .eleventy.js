@@ -71,6 +71,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       // cssManager.resetComponentCode();
       // eleventyVue.reset();
     }
+    eleventyVue.clearRequireCache();
   });
 
   eleventyConfig.addTemplateFormats("vue");
@@ -90,8 +91,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         // for write count
         eleventyVue.createVueComponents([]);
       } else {
-        eleventyVue.clearRequireCache();
-
         let files = changedVueFilesOnWatch;
         if(!files || !files.length) {
           files = await eleventyVue.findFiles();
