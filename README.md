@@ -18,7 +18,7 @@ npm install @11ty/eleventy-plugin-vue
 
 ### Changelog
 
-* `0.3.0` Adds `options.input` to target to one or more Vue files. Fixes bug with Vue components not reloading correctly during serve/watch. Performance improvements: Eleventy can ignore _includes because rollup handles these files, Eleventy only invalidates require.cache before a serve/watch re-build. Fixes issue with tests colliding (was using the same input files and same cache directory).
+* `0.3.0` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/3?closed=1)) More consistent incremental builds. Performance improvements.
 * `0.2.1` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/2?closed=1)) adds incremental builds for Eleventy Vue components to avoid unnecessary repeat work. Fixes bug with `permalink` strings returned from Vue Single File Component data.
 * `0.1.x` converted to use a Single File Components for everything (templates, components, etc), instead of `0.0.x`’s string templates with front matter.
 
