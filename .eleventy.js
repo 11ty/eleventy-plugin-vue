@@ -9,6 +9,7 @@ const EleventyVue = require("./EleventyVue");
 const pkg = require("./package.json");
 
 const globalOptions = {
+  input: [], // point to a specific list of Vue files (defaults to **/*.vue) 
   cacheDirectory: ".cache/vue/",
   // See https://rollup-plugin-vue.vuejs.org/options.html
   rollupPluginVueOptions: {},
@@ -35,8 +36,9 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   // * Probably complications with components that are only used in a layout template.
   eleventyConfig.addFilter("getVueComponentCssForPage", (url) => {
     let components = cssManager.getComponentListForUrl(url);
-    debug("Component for %o %o: %O", url, components.length, components);
-    return cssManager.getCodeForUrl(url);
+    let css = cssManager.getCodeForUrl(url);
+    debug("Component CSS for %o component count: %o, CSS size: %o: %O", url, components.length, css.length, components);
+    return css;
   });
 
   // TODO check if verbose mode for console.log
@@ -88,12 +90,17 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
 
       if(skipVueBuild) {
-        // for write count
+        // we only call this to set the write count for the build
         eleventyVue.createVueComponents([]);
       } else {
         let files = changedVueFilesOnWatch;
         if(!files || !files.length) {
-          files = await eleventyVue.findFiles();
+          // input passed in via config
+          if(options.input && options.input.length) {
+            files = options.input;
+          } else {
+            files = await eleventyVue.findFiles();
+          }
         }
         let bundle = await eleventyVue.getBundle(files);
         let output = await eleventyVue.write(bundle);

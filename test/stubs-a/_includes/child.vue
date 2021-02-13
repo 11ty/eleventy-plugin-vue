@@ -9,6 +9,8 @@ import grandchild from "./grandchild.vue";
 
 export default {
   props: {},
-  components: {}
+  components: {
+    grandchild,
+  }
 }
 </script>

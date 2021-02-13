@@ -22,12 +22,10 @@ class EleventyVue {
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
       exports: "default",
+      preserveModules: true, // keeps separate files on the file system
       // dir: this.cacheDir // set via setCacheDir
       entryFileNames: (chunkInfo) => {
-        if(chunkInfo.facadeModuleId.endsWith(".vue")) {
-          let filename = this.getEntryFileName(chunkInfo.facadeModuleId);
-          return filename;
-        }
+        debug("Rollup chunk %o", chunkInfo.facadeModuleId);
         return "[name].js";
       }
     };
@@ -101,7 +99,6 @@ class EleventyVue {
     return filepath.startsWith(this.includesDir);
   }
 
-  // TODO only do this for watch/serve
   clearRequireCache() {
     let fullCacheDir = this.getFullCacheDir();
     let deleteCount = 0;
@@ -117,8 +114,11 @@ class EleventyVue {
 
   async findFiles(glob = "**/*.vue") {
     let globPath = path.join(this.inputDir, glob);
+
     return fastglob(globPath, {
-      caseSensitiveMatch: false
+      caseSensitiveMatch: false,
+      // rollup handles the includes for us.
+      ignore: [`${this.includesDir}/**`],
     });
   }
 
@@ -171,31 +171,45 @@ class EleventyVue {
     this.componentsWriteCount = 0;
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
+      // if(entry.fileName.endsWith("rollup-plugin-vue=script.js") || 
+      if(fullVuePath.endsWith("vue-runtime-helpers/dist/normalize-component.mjs")) {
+        continue;
+      }
 
       let inputPath = this.getLocalVueFilePath(fullVuePath);
       let jsFilename = entry.fileName;
-      this.addVueToJavaScriptMapping(inputPath, jsFilename);
+      let intermediateComponent = false;
+      let css;
 
-      let css = this.getCSSForComponent(inputPath);
-      if(css && this.cssManager) {
-        this.cssManager.addComponentCode(jsFilename, css);
+      if(fullVuePath.endsWith("?rollup-plugin-vue=script.js")) {
+        intermediateComponent = true;
+        css = false;
+      } else {
+        debug("Adding Vue file to JS component file name mapping: %o to %o (via %o)", inputPath, entry.fileName, fullVuePath);
+        this.addVueToJavaScriptMapping(inputPath, jsFilename);
+
+        css = this.getCSSForComponent(inputPath);
+        if(css && this.cssManager) {
+          this.cssManager.addComponentCode(jsFilename, css);
+        }
       }
 
       if(this.cssManager) {
         // If you import it, it will roll up the imported CSS in the CSS manager
-        let directImports = entry.importedBindings || {};
-        for(let importFilename in directImports) {
-          for(let key of directImports[importFilename]) {
-            if(key === "default" || key === "normalizeComponent") {
-              this.cssManager.addComponentRelationship(jsFilename, importFilename);
-            } else if(key === "__vue_component__") {
-              this.cssManager.addComponentRelationship(importFilename, jsFilename);
-            }
+        let importList = entry.imports || [];
+        // debug("filename: %o importedBindings:", entry.fileName, Object.keys(entry.importedBindings));
+        debug("filename: %o imports:", entry.fileName, entry.imports);
+        // debug("modules: %O", Object.keys(entry.modules));
+
+        for(let importFilename of importList) {
+          if(importFilename.endsWith("vue-runtime-helpers/dist/normalize-component.js")) {
+            continue;
           }
+          this.cssManager.addComponentRelationship(jsFilename, importFilename);
         }
       }
 
-      debug("Created %o from %o" + (css ? " w/ CSS" : ""), jsFilename, inputPath);
+      debug("Created %o from %o" + (css ? " w/ CSS" : " without CSS") + (intermediateComponent ? " (intermediate/connector component)" : ""), jsFilename, inputPath);
       this.componentsWriteCount++;
     }
   }
@@ -215,12 +229,16 @@ class EleventyVue {
     if(!this.vueFileToCSSMap[localVuePath]) {
       this.vueFileToCSSMap[localVuePath] = [];
     }
+    let css = cssText.trim();
+    debug("Adding CSS to %o, length: %o", localVuePath, css.length);
 
-    this.vueFileToCSSMap[localVuePath].push(cssText.trim());
+    this.vueFileToCSSMap[localVuePath].push(css);
   }
 
   getCSSForComponent(localVuePath) {
-    return (this.vueFileToCSSMap[localVuePath] || []).join("\n");
+    let css = (this.vueFileToCSSMap[localVuePath] || []).join("\n");
+    debug("Getting CSS for component: %o, length: %o", localVuePath, css.length);
+    return css;
   }
 
   /* Map from vue files to compiled JavaScript files */
@@ -234,13 +252,15 @@ class EleventyVue {
 
   getFullJavaScriptComponentFilePath(localVuePath) {
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
+    debug("Map vue path to JS component file: %o to %o", localVuePath, jsFilename);
     let fullComponentPath = path.join(this.getFullCacheDir(), jsFilename);
     return fullComponentPath;
   }
 
   getComponent(localVuePath) {
     let fullComponentPath = this.getFullJavaScriptComponentFilePath(localVuePath);
-    return require(fullComponentPath);
+    let component = require(fullComponentPath);
+    return component;
   }
 
   async renderComponent(vueComponent, data, mixin = {}) {
