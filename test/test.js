@@ -176,3 +176,31 @@ body {
 }`);
 	
 });
+
+test("Vue SFC CSS (one component, no children) Issue #10", async t => {
+	let ev = new EleventyVue();
+	ev.setCacheDir(".cache/vue-test-e");
+	ev.setInputDir("test/stubs-e");
+	ev.setIncludesDir("test/stubs-e/_includes");
+
+	let cssMgr = new InlineCodeManager();
+	ev.setCssManager(cssMgr);
+
+	let bundle = await ev.getBundle();
+	let output = await ev.write(bundle);
+
+	ev.createVueComponents(output);
+
+	t.is(ev.getCSSForComponent("./test/stubs-e/data.vue"), `body {
+	background-color: blue;
+}`);
+
+	let componentName = ev.getJavaScriptComponentFile("./test/stubs-e/data.vue");
+	cssMgr.addComponentForUrl(componentName, "/data/");
+
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* test/stubs-e/data.js Component */
+body {
+	background-color: blue;
+}`);
+	
+});
