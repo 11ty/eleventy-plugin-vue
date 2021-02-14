@@ -15,6 +15,7 @@ const debug = require("debug")("EleventyVue");
 class EleventyVue {
   constructor(cacheDirectory) {
     this.workingDir = path.resolve(".");
+    this.ignores = new Set();
 
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
@@ -75,12 +76,34 @@ class EleventyVue {
     }, this.rollupPluginVueOptions);
   }
 
+  resetIgnores() {
+    this.ignores = new Set();
+  }
+
   setInputDir(inputDir) {
     this.inputDir = path.join(this.workingDir, inputDir);
   }
-  
-  setIncludesDir(includesDir) {
-    this.includesDir = path.join(this.workingDir, includesDir);
+
+  setIncludesDir(includesDir, useInFileSearch = false) {
+    if(includesDir) {
+      // Was: path.join(this.workingDir, includesDir);
+      // Which seems wrong? per https://www.11ty.dev/docs/config/#directory-for-includes
+      this.includesDir = path.join(this.inputDir, includesDir);
+
+      if(!useInFileSearch) {
+        this.ignores.add(`${this.includesDir}/**`);
+      }
+    }
+  }
+
+  setLayoutsDir(layoutsDir, useInFileSearch = true) {
+    if(layoutsDir) {
+      this.layoutsDir = path.join(this.inputDir, layoutsDir);
+
+      if(!useInFileSearch) {
+        this.ignores.add(`${this.layoutsDir}/**`);
+      }
+    }
   }
 
   setCacheDir(cacheDir) {
@@ -113,12 +136,25 @@ class EleventyVue {
   }
 
   async findFiles(glob = "**/*.vue") {
-    let globPath = path.join(this.inputDir, glob);
+    let globPaths = [
+      path.join(this.inputDir, glob)
+    ];
 
-    return fastglob(globPath, {
+    if(this.includesDir && !this.includesDir.startsWith(this.inputDir)) {
+      globPaths.push(
+        path.join(this.includesDir, glob)
+      );
+    }
+
+    if(this.layoutsDir && !this.layoutsDir.startsWith(this.inputDir)) {
+      globPaths.push(
+        path.join(this.layoutsDir, glob)
+      );
+    }
+
+    return fastglob(globPaths, {
       caseSensitiveMatch: false,
-      // rollup handles the includes for us.
-      ignore: [`${this.includesDir}/**`],
+      ignore: Array.from(this.ignores),
     });
   }
 
@@ -296,3 +332,4 @@ class EleventyVue {
 }
 
 module.exports = EleventyVue;
+

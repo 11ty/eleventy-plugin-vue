@@ -1,4 +1,3 @@
-const path = require("path");
 const lodashMerge = require("lodash.merge");
 const debug = require("debug")("EleventyVue");
 
@@ -9,7 +8,14 @@ const EleventyVue = require("./EleventyVue");
 const pkg = require("./package.json");
 
 const globalOptions = {
-  input: [], // point to a specific list of Vue files (defaults to **/*.vue) 
+  input: [], // point to a specific list of Vue files (defaults to **/*.vue)
+
+  // Because Vue components live in the _includes directory alongside Eleventy layout files, it’s
+  // faster to use a _layouts dir instead of _includes dir for Eleventy layouts.
+  // Enable this feature to use Eleventy layouts inside of _includes too (it’s slower)
+  searchIncludesDirectoryForLayouts: false,
+  searchLayoutsDirectoryForLayouts: true,
+
   cacheDirectory: ".cache/vue/",
   // See https://rollup-plugin-vue.vuejs.org/options.html
   rollupPluginVueOptions: {},
@@ -85,8 +91,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       return eleventyVue.getComponent(inputPath);
     },
     init: async function() {
+      eleventyVue.resetIgnores();
       eleventyVue.setInputDir(this.config.inputDir);
-      eleventyVue.setIncludesDir(path.join(this.config.inputDir, this.config.dir.includes));
+      eleventyVue.setIncludesDir(this.config.dir.includes, !options.searchIncludesDirectoryForLayouts);
+      eleventyVue.setLayoutsDir(this.config.dir.layouts, !options.searchLayoutsDirectoryForLayouts);
+
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
 
       if(skipVueBuild) {
