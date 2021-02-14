@@ -14,7 +14,7 @@ const globalOptions = {
   // faster to use a _layouts dir instead of _includes dir for Eleventy layouts.
   // Enable this feature to use Eleventy layouts inside of _includes too (it’s slower)
   searchIncludesDirectoryForLayouts: false,
-  searchLayoutsDirectoryForLayouts: true,
+  searchLayoutsDirectoryForLayouts: false,
 
   cacheDirectory: ".cache/vue/",
   // See https://rollup-plugin-vue.vuejs.org/options.html
