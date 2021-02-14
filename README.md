@@ -34,7 +34,7 @@ npm install @11ty/eleventy-plugin-vue
 ### Not Yet Available
 
 * Traditional Vue.js “Page templates” (think `<!--vue-ssr-outlet-->`) as layouts.
-  * Note that `.vue` templates **do work** as Eleventy layouts, but using traditional Eleventy methods for child content a la `v-html="content"` instead of `<!--vue-ssr-outlet-->`.
+  * Using `.vue` templates as Eleventy layouts is not yet supported. Subscribe to this issue at [#26](https://github.com/11ty/eleventy-plugin-vue/issues/26).
 * Does not yet embed any client-side JavaScript from inside single file components into the output for use on the client. Any JavaScript embedded there is used only for rendering templates in the build and does not show up in the output.
   * Note that if this is added in the future, it will likely be an opt-in feature.
 * `lang` on `<template>`, `<style>`, or `<script>` is not yet supported.
