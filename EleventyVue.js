@@ -15,7 +15,7 @@ const debug = require("debug")("EleventyVue");
 class EleventyVue {
   constructor(cacheDirectory) {
     this.workingDir = path.resolve(".");
-    this.ignores = new Set();
+    this.resetIgnores();
 
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
@@ -78,6 +78,8 @@ class EleventyVue {
 
   resetIgnores() {
     this.ignores = new Set();
+    // TODO add gitignores and eleventyignores Issue #11
+    // this.ignores.add("**/node_modules/**");
   }
 
   setInputDir(inputDir) {

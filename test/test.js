@@ -60,7 +60,7 @@ test("Vue SFC Render", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test-a");
 	ev.setInputDir("test/stubs-a");
-	ev.setIncludesDir("test/stubs-a/_includes");
+	ev.setIncludesDir("_includes");
 
 	let files = await ev.findFiles();
 	let bundle = await ev.getBundle(files);
@@ -82,7 +82,7 @@ test("Vue SFC Render (one input file)", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test-b");
 	ev.setInputDir("test/stubs-b");
-	ev.setIncludesDir("test/stubs-b/_includes");
+	ev.setIncludesDir("_includes");
 
 	let inputFile = path.join(process.cwd(), "test/stubs-b/data.vue");
 	let files = [inputFile];
@@ -105,7 +105,7 @@ test("Vue SFC CSS", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test-c");
 	ev.setInputDir("test/stubs-c");
-	ev.setIncludesDir("test/stubs-c/_includes");
+	ev.setIncludesDir("_includes");
 
 	let cssMgr = new InlineCodeManager();
 	ev.setCssManager(cssMgr);
@@ -150,7 +150,7 @@ test("Vue SFC CSS (one input file)", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test-d");
 	ev.setInputDir("test/stubs-d");
-	ev.setIncludesDir("test/stubs-d/_includes");
+	ev.setIncludesDir("_includes");
 
 	let cssMgr = new InlineCodeManager();
 	ev.setCssManager(cssMgr);
@@ -196,7 +196,7 @@ test("Vue SFC CSS (one component, no children) Issue #10", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test-e");
 	ev.setInputDir("test/stubs-e");
-	ev.setIncludesDir("test/stubs-e/_includes");
+	ev.setIncludesDir("_includes");
 
 	let cssMgr = new InlineCodeManager();
 	ev.setCssManager(cssMgr);
@@ -220,13 +220,16 @@ body {
 	
 });
 
-test("Vue as Layout file", async t => {
+test.skip("Vue as Layout file (Issue #26)", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test-layout");
 	ev.setInputDir("test/stubs-layout");
-	ev.setIncludesDir("test/stubs-layout/_includes");
+	ev.setIncludesDir("_includes", true);
+	t.deepEqual(Array.from(ev.ignores), []);
 
 	let files = await ev.findFiles();
+	t.is(files.length, 2);
+
 	let bundle = await ev.getBundle(files);
 	let output = await ev.write(bundle);
 
