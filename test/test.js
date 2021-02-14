@@ -204,3 +204,27 @@ body {
 }`);
 	
 });
+
+test("Vue as Layout file", async t => {
+	let ev = new EleventyVue();
+	ev.setCacheDir(".cache/vue-test-layout");
+	ev.setInputDir("test/stubs-layout");
+	ev.setIncludesDir("test/stubs-layout/_includes");
+
+	let files = await ev.findFiles();
+	let bundle = await ev.getBundle(files);
+	let output = await ev.write(bundle);
+
+	ev.createVueComponents(output);
+
+	let component = ev.getComponent("./test/stubs-layout/page.vue");
+
+	t.is(await ev.renderComponent(component, {
+		page: {
+			url: "/some-url/"
+		}
+	}), `<html lang="en">
+	<title></title>
+	<div data-server-rendered="true">Child content</div>
+</html>`);
+});
