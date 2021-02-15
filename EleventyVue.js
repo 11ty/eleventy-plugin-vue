@@ -93,7 +93,7 @@ class EleventyVue {
       this.includesDir = path.join(this.inputDir, includesDir);
 
       if(!useInFileSearch) {
-        this.ignores.add(`${this.includesDir}/**`);
+        this.ignores.add(path.join(this.includesDir, "**"));
       }
     }
   }
@@ -103,7 +103,7 @@ class EleventyVue {
       this.layoutsDir = path.join(this.inputDir, layoutsDir);
 
       if(!useInFileSearch) {
-        this.ignores.add(`${this.layoutsDir}/**`);
+        this.ignores.add(path.join(this.layoutsDir, "**"));
       }
     }
   }
@@ -210,7 +210,7 @@ class EleventyVue {
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
       // if(entry.fileName.endsWith("rollup-plugin-vue=script.js") || 
-      if(fullVuePath.endsWith("vue-runtime-helpers/dist/normalize-component.mjs")) {
+      if(fullVuePath.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.mjs"))) {
         continue;
       }
 
@@ -240,7 +240,7 @@ class EleventyVue {
         // debug("modules: %O", Object.keys(entry.modules));
 
         for(let importFilename of importList) {
-          if(importFilename.endsWith("vue-runtime-helpers/dist/normalize-component.js")) {
+          if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
             continue;
           }
           this.cssManager.addComponentRelationship(jsFilename, importFilename);
