@@ -225,6 +225,7 @@ class EleventyVue {
       } else {
         debug("Adding Vue file to JS component file name mapping: %o to %o (via %o)", inputPath, entry.fileName, fullVuePath);
         this.addVueToJavaScriptMapping(inputPath, jsFilename);
+        this.componentsWriteCount++;
 
         css = this.getCSSForComponent(inputPath);
         if(css && this.cssManager) {
@@ -248,7 +249,6 @@ class EleventyVue {
       }
 
       debug("Created %o from %o" + (css ? " w/ CSS" : " without CSS") + (intermediateComponent ? " (intermediate/connector component)" : ""), jsFilename, inputPath);
-      this.componentsWriteCount++;
     }
   }
 
