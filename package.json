@@ -8,7 +8,7 @@
   "main": ".eleventy.js",
   "scripts": {
     "test": "ava",
-    "sample": "ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy --input=test/sample --serve"
+    "sample": "ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy --input=test/sample"
   },
   "repository": {
     "type": "git",

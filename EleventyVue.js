@@ -1,4 +1,6 @@
 const path = require("path");
+const fs = require("fs");
+const fsp = fs.promises;
 const fastglob = require("fast-glob");
 const lodashMerge = require("lodash.merge");
 
@@ -11,6 +13,7 @@ const vueServerRenderer = require("vue-server-renderer");
 const renderer = vueServerRenderer.createRenderer();
 
 const debug = require("debug")("EleventyVue");
+const debugDev = require("debug")("Dev:EleventyVue");
 
 class EleventyVue {
   constructor(cacheDirectory) {
@@ -26,16 +29,22 @@ class EleventyVue {
       preserveModules: true, // keeps separate files on the file system
       // dir: this.cacheDir // set via setCacheDir
       entryFileNames: (chunkInfo) => {
-        debug("Rollup chunk %o", chunkInfo.facadeModuleId);
+        debugDev("Rollup chunk %o", chunkInfo.facadeModuleId);
         return "[name].js";
       }
     };
-    
+
     this.setCacheDir(cacheDirectory);
 
     this.componentsWriteCount = 0;
+
+    this.bypassRollupCache = false;
   }
-  
+
+  setBypassRollupCache(enabled) {
+    this.bypassRollupCache = !!enabled;
+  }
+
   getEntryFileName(localpath) {
     if(localpath.endsWith(".vue")) {
       localpath = localpath.substr(0, localpath.length - 4) + ".js";
@@ -53,7 +62,7 @@ class EleventyVue {
   reset() {
     this.vueFileToCSSMap = {};
   }
-  
+
   resetFor(localVuePath) {
     this.vueFileToCSSMap[localVuePath] = [];
   }
@@ -108,9 +117,21 @@ class EleventyVue {
     }
   }
 
+  // adds leading ./
+  _createRequirePath(...paths) {
+    let joined = path.join(...paths);
+    if(joined.startsWith("/")) {
+      return joined;
+    }
+    return `./${joined}`;
+  }
+
   setCacheDir(cacheDir) {
     this.cacheDir = cacheDir;
     this.rollupBundleOptions.dir = cacheDir;
+
+    this.bypassRollupCacheCssFile = this._createRequirePath(this.cacheDir || "", "eleventy-vue-rollup-css.json");
+    this.bypassRollupCacheFile = this._createRequirePath(this.cacheDir || "", "eleventy-vue-rollup.json");
   }
 
   getFullCacheDir() {
@@ -130,7 +151,7 @@ class EleventyVue {
     for(let fullPath in require.cache) {
       if(fullPath.startsWith(fullCacheDir)) {
         deleteCount++;
-        debug( "Deleting from require cache: %o", fullPath );
+        debugDev( "Deleting from require cache: %o", fullPath );
         delete require.cache[fullPath];
       }
     }
@@ -161,20 +182,22 @@ class EleventyVue {
   }
 
   // Glob is optional
-  async getBundle(input) {
+  async getBundle(input, isSubsetOfFiles = false) {
     if(!input) {
       input = await this.findFiles();
     }
 
-    debug("Passed %o Vue files to getBundle", input.length);
+    debug("Processing %o Vue files", input.length);
 
     let bundle = await rollup.rollup({
       input: input,
       plugins: [
         rollupPluginCssOnly({
-          output: (styles, styleNodes) => {
-            for(let fullVuePath in styleNodes) {
-              this.addCSS(fullVuePath, styleNodes[fullVuePath]);
+          output: async (styles, styleNodes) => {
+            this.addRawCSS(styleNodes);
+
+            if(this.bypassRollupCache && !isSubsetOfFiles) {
+              await this.writeRollupOutputCacheCss(styleNodes);
             }
           }
         }),
@@ -185,61 +208,85 @@ class EleventyVue {
     return bundle;
   }
 
-  // async generateFromBundle(bundle) {
-  //   let { output } = await bundle.generate(this.rollupBundleOptions);
-
-  //   return output;
-  // }
-
-  async write(bundle) {
+  async _operateOnBundle(bundle, rollupMethod = "write") {
     if(!bundle) {
       throw new Error("Eleventy Vue Plugin: write(bundle) needs a bundle argument.");
     }
 
-    let { output } = await bundle.write(this.rollupBundleOptions);
+    let { output } = await bundle[rollupMethod](this.rollupBundleOptions);
 
     output = output.filter(entry => !!entry.facadeModuleId);
 
     return output;
   }
 
-  // output is returned from .write()
+  async write(bundle) {
+    return this._operateOnBundle(bundle, "write");
+  }
+
+  async generate(bundle) {
+    return this._operateOnBundle(bundle, "generate");
+  }
+
+  hasRollupOutputCache() {
+    return fs.existsSync(this.bypassRollupCacheFile) && fs.existsSync(this.bypassRollupCacheCssFile);
+  }
+
+  async writeRollupOutputCache(output) {
+    debug("Writing rollup cache to file system %o", this.bypassRollupCacheFile);
+    return fsp.writeFile(this.bypassRollupCacheFile, JSON.stringify(output, null, 2));
+  }
+  
+  async writeRollupOutputCacheCss(styleNodes) {
+    debug("Writing rollup cache CSS to file system %o", this.bypassRollupCacheCssFile);
+    return fsp.writeFile(this.bypassRollupCacheCssFile, JSON.stringify(styleNodes, null, 2));
+  }
+
+  async fetchRollupOutputCache() {
+    debugDev("Using rollup file system cache to bypass rollup.");
+    let styleNodes = JSON.parse(await fsp.readFile(this.bypassRollupCacheCssFile, "utf8"));
+    this.addRawCSS(styleNodes);
+
+    let output = JSON.parse(await fsp.readFile(this.bypassRollupCacheFile, "utf8"));
+    return output;
+  }
+
+  // output is returned from .write() or .generate() or .fetchRollupOutputCache()
   createVueComponents(output) {
-    debug("Created %o Vue components", output.length);
     this.componentsWriteCount = 0;
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
-      // if(entry.fileName.endsWith("rollup-plugin-vue=script.js") || 
+      // if(entry.fileName.endsWith("rollup-plugin-vue=script.js") ||
       if(fullVuePath.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.mjs"))) {
         continue;
       }
-
+      
       let inputPath = this.getLocalVueFilePath(fullVuePath);
       let jsFilename = entry.fileName;
       let intermediateComponent = false;
       let css;
-
+      
       if(fullVuePath.endsWith("?rollup-plugin-vue=script.js")) {
         intermediateComponent = true;
         css = false;
       } else {
-        debug("Adding Vue file to JS component file name mapping: %o to %o (via %o)", inputPath, entry.fileName, fullVuePath);
+        debugDev("Adding Vue file to JS component file name mapping: %o to %o (via %o)", inputPath, entry.fileName, fullVuePath);
         this.addVueToJavaScriptMapping(inputPath, jsFilename);
         this.componentsWriteCount++;
-
+        
         css = this.getCSSForComponent(inputPath);
         if(css && this.cssManager) {
           this.cssManager.addComponentCode(jsFilename, css);
         }
       }
-
+      
       if(this.cssManager) {
         // If you import it, it will roll up the imported CSS in the CSS manager
         let importList = entry.imports || [];
-        // debug("filename: %o importedBindings:", entry.fileName, Object.keys(entry.importedBindings));
-        debug("filename: %o imports:", entry.fileName, entry.imports);
-        // debug("modules: %O", Object.keys(entry.modules));
-
+        // debugDev("filename: %o importedBindings:", entry.fileName, Object.keys(entry.importedBindings));
+        debugDev("filename: %o imports:", entry.fileName, entry.imports);
+        // debugDev("modules: %O", Object.keys(entry.modules));
+        
         for(let importFilename of importList) {
           if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
             continue;
@@ -247,9 +294,11 @@ class EleventyVue {
           this.cssManager.addComponentRelationship(jsFilename, importFilename);
         }
       }
-
-      debug("Created %o from %o" + (css ? " w/ CSS" : " without CSS") + (intermediateComponent ? " (intermediate/connector component)" : ""), jsFilename, inputPath);
+      
+      debugDev("Created %o from %o" + (css ? " w/ CSS" : " without CSS") + (intermediateComponent ? " (intermediate/connector component)" : ""), jsFilename, inputPath);
     }
+
+    debug("Created %o Vue components", this.componentsWriteCount);
   }
 
   getLocalVueFilePath(fullPath) {
@@ -262,20 +311,26 @@ class EleventyVue {
   }
 
   /* CSS */
+  addRawCSS(styleNodes) {
+    for(let fullVuePath in styleNodes) {
+      this.addCSS(fullVuePath, styleNodes[fullVuePath]);
+    }
+  }
+
   addCSS(fullVuePath, cssText) {
     let localVuePath = this.getLocalVueFilePath(fullVuePath);
     if(!this.vueFileToCSSMap[localVuePath]) {
       this.vueFileToCSSMap[localVuePath] = [];
     }
     let css = cssText.trim();
-    debug("Adding CSS to %o, length: %o", localVuePath, css.length);
+    debugDev("Adding CSS to %o, length: %o", localVuePath, css.length);
 
     this.vueFileToCSSMap[localVuePath].push(css);
   }
 
   getCSSForComponent(localVuePath) {
     let css = (this.vueFileToCSSMap[localVuePath] || []).join("\n");
-    debug("Getting CSS for component: %o, length: %o", localVuePath, css.length);
+    debugDev("Getting CSS for component: %o, length: %o", localVuePath, css.length);
     return css;
   }
 
@@ -290,7 +345,7 @@ class EleventyVue {
 
   getFullJavaScriptComponentFilePath(localVuePath) {
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
-    debug("Map vue path to JS component file: %o to %o", localVuePath, jsFilename);
+    debugDev("Map vue path to JS component file: %o to %o", localVuePath, jsFilename);
     let fullComponentPath = path.join(this.getFullCacheDir(), jsFilename);
     return fullComponentPath;
   }
@@ -334,4 +389,3 @@ class EleventyVue {
 }
 
 module.exports = EleventyVue;
-

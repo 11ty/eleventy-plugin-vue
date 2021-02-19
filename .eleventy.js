@@ -17,6 +17,9 @@ const globalOptions = {
   searchLayoutsDirectoryForLayouts: false,
 
   cacheDirectory: ".cache/vue/",
+
+  cacheRollupOutputToFileSystem: false,
+
   // See https://rollup-plugin-vue.vuejs.org/options.html
   rollupPluginVueOptions: {},
   assets: {
@@ -29,6 +32,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   let eleventyVue = new EleventyVue();
   eleventyVue.setCacheDir(options.cacheDirectory);
+  eleventyVue.setBypassRollupCache(options.cacheRollupOutputToFileSystem);
 
   let cssManager = options.assets.css || new InlineCodeManager();
   eleventyVue.setCssManager(cssManager);
@@ -101,19 +105,32 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       if(skipVueBuild) {
         // we only call this to set the write count for the build
         eleventyVue.createVueComponents([]);
+      } else if(options.cacheRollupOutputToFileSystem && eleventyVue.hasRollupOutputCache()) {
+        let output = await eleventyVue.fetchRollupOutputCache();
+        eleventyVue.createVueComponents(output);
       } else {
         let files = changedVueFilesOnWatch;
-        if(!files || !files.length) {
+        let isSubset = false;
+
+        if(files && files.length) {
+          isSubset = true;
+        } else {
           // input passed in via config
           if(options.input && options.input.length) {
             files = options.input;
+            isSubset = true;
           } else {
             files = await eleventyVue.findFiles();
           }
         }
-        let bundle = await eleventyVue.getBundle(files);
+
+        let bundle = await eleventyVue.getBundle(files, isSubset);
         let output = await eleventyVue.write(bundle);
-  
+
+        if(options.cacheRollupOutputToFileSystem && !isSubset) { // implied eleventyVue.hasRollupOutputCache() was false
+          await eleventyVue.writeRollupOutputCache(output);
+        }
+
         eleventyVue.createVueComponents(output);
       }
     },
