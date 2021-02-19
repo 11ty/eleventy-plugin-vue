@@ -71,6 +71,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       skipVueBuild = false;
       for(let localVuePath of changedVueFilesOnWatch) {
         let jsFilename = eleventyVue.getJavaScriptComponentFile(localVuePath);
+        debug("Resetting component code for %o", jsFilename);
         cssManager.resetComponentCodeFor(jsFilename);
 
         eleventyVue.resetFor(localVuePath);

@@ -64,6 +64,7 @@ class EleventyVue {
   }
 
   resetFor(localVuePath) {
+    debug("Clearing CSS styleNodes in Vue for %o", localVuePath);
     this.vueFileToCSSMap[localVuePath] = [];
   }
 
