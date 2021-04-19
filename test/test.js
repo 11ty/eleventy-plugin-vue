@@ -54,6 +54,7 @@ test("getLocalVueFilePath", t => {
 	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue")), "./src/components/test.vue");
 	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue?query=param")), "./src/test.vue");
 	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), "./src/components/test.vue");
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "press", "press-release.vue?rollup-plugin-vue=styles.0.css")), "./src/press/press-release.vue");
 });
 
 test("Vue SFC Render", async t => {

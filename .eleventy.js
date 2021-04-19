@@ -69,20 +69,10 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     // Only reset what changed! (Partial builds for Vue rollup files)
     if(changedVueFilesOnWatch.length > 0) {
       skipVueBuild = false;
-      for(let localVuePath of changedVueFilesOnWatch) {
-        let jsFilename = eleventyVue.getJavaScriptComponentFile(localVuePath);
-        debug("Resetting component code for %o", jsFilename);
-        cssManager.resetComponentCodeFor(jsFilename);
-
-        eleventyVue.resetFor(localVuePath);
-      }
     } else {
       if(hasChangedFiles) {
         skipVueBuild = true;
       }
-      // TODO reset all if incremental not enabled
-      // cssManager.resetComponentCode();
-      // eleventyVue.reset();
     }
     eleventyVue.clearRequireCache();
   });

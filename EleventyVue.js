@@ -195,7 +195,7 @@ class EleventyVue {
       plugins: [
         rollupPluginCssOnly({
           output: async (styles, styleNodes) => {
-            this.addRawCSS(styleNodes);
+            this.addRawCSS(styleNodes, true);
 
             if(this.bypassRollupCache && !isSubsetOfFiles) {
               await this.writeRollupOutputCacheCss(styleNodes);
@@ -237,7 +237,7 @@ class EleventyVue {
     debug("Writing rollup cache to file system %o", this.bypassRollupCacheFile);
     return fsp.writeFile(this.bypassRollupCacheFile, JSON.stringify(output, null, 2));
   }
-  
+
   async writeRollupOutputCacheCss(styleNodes) {
     debug("Writing rollup cache CSS to file system %o", this.bypassRollupCacheCssFile);
     return fsp.writeFile(this.bypassRollupCacheCssFile, JSON.stringify(styleNodes, null, 2));
@@ -261,12 +261,12 @@ class EleventyVue {
       if(fullVuePath.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.mjs"))) {
         continue;
       }
-      
+
       let inputPath = this.getLocalVueFilePath(fullVuePath);
       let jsFilename = entry.fileName;
       let intermediateComponent = false;
       let css;
-      
+
       if(fullVuePath.endsWith("?rollup-plugin-vue=script.js")) {
         intermediateComponent = true;
         css = false;
@@ -274,20 +274,20 @@ class EleventyVue {
         debugDev("Adding Vue file to JS component file name mapping: %o to %o (via %o)", inputPath, entry.fileName, fullVuePath);
         this.addVueToJavaScriptMapping(inputPath, jsFilename);
         this.componentsWriteCount++;
-        
+
         css = this.getCSSForComponent(inputPath);
         if(css && this.cssManager) {
           this.cssManager.addComponentCode(jsFilename, css);
         }
       }
-      
+
       if(this.cssManager) {
         // If you import it, it will roll up the imported CSS in the CSS manager
         let importList = entry.imports || [];
         // debugDev("filename: %o importedBindings:", entry.fileName, Object.keys(entry.importedBindings));
         debugDev("filename: %o imports:", entry.fileName, entry.imports);
         // debugDev("modules: %O", Object.keys(entry.modules));
-        
+
         for(let importFilename of importList) {
           if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
             continue;
@@ -295,7 +295,7 @@ class EleventyVue {
           this.cssManager.addComponentRelationship(jsFilename, importFilename);
         }
       }
-      
+
       debugDev("Created %o from %o" + (css ? " w/ CSS" : " without CSS") + (intermediateComponent ? " (intermediate/connector component)" : ""), jsFilename, inputPath);
     }
 
@@ -312,15 +312,15 @@ class EleventyVue {
   }
 
   /* CSS */
-  addRawCSS(styleNodes) {
+  addRawCSS(styleNodes, overwrite = false) {
     for(let fullVuePath in styleNodes) {
-      this.addCSS(fullVuePath, styleNodes[fullVuePath]);
+      this.addCSS(fullVuePath, styleNodes[fullVuePath], overwrite);
     }
   }
 
-  addCSS(fullVuePath, cssText) {
+  addCSS(fullVuePath, cssText, overwrite = false) {
     let localVuePath = this.getLocalVueFilePath(fullVuePath);
-    if(!this.vueFileToCSSMap[localVuePath]) {
+    if(overwrite || !this.vueFileToCSSMap[localVuePath]) {
       this.vueFileToCSSMap[localVuePath] = [];
     }
     let css = cssText.trim();
