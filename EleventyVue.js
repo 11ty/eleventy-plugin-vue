@@ -63,6 +63,7 @@ class EleventyVue {
     this.vueFileToCSSMap = {};
   }
 
+  // Deprecated, use resetCSSFor above
   resetFor(localVuePath) {
     debug("Clearing CSS styleNodes in Vue for %o", localVuePath);
     this.vueFileToCSSMap[localVuePath] = [];
@@ -316,7 +317,12 @@ class EleventyVue {
   resetCSSFor(styleNodes) {
     for(let fullVuePath in styleNodes) {
       let localVuePath = this.getLocalVueFilePath(fullVuePath);
-      this.vueFileToCSSMap[localVuePath] = [];
+      delete this.vueFileToCSSMap[localVuePath];
+
+      if(this.cssManager) {
+        let jsFilename = this.getJavaScriptComponentFile(localVuePath);
+        this.cssManager.resetComponentCodeFor(jsFilename);
+      }
     }
   }
 
