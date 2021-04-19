@@ -195,7 +195,8 @@ class EleventyVue {
       plugins: [
         rollupPluginCssOnly({
           output: async (styles, styleNodes) => {
-            this.addRawCSS(styleNodes, true);
+            this.resetCSSFor(styleNodes);
+            this.addRawCSS(styleNodes);
 
             if(this.bypassRollupCache && !isSubsetOfFiles) {
               await this.writeRollupOutputCacheCss(styleNodes);
@@ -312,15 +313,22 @@ class EleventyVue {
   }
 
   /* CSS */
-  addRawCSS(styleNodes, overwrite = false) {
+  resetCSSFor(styleNodes) {
     for(let fullVuePath in styleNodes) {
-      this.addCSS(fullVuePath, styleNodes[fullVuePath], overwrite);
+      let localVuePath = this.getLocalVueFilePath(fullVuePath);
+      this.vueFileToCSSMap[localVuePath] = [];
     }
   }
 
-  addCSS(fullVuePath, cssText, overwrite = false) {
+  addRawCSS(styleNodes) {
+    for(let fullVuePath in styleNodes) {
+      this.addCSS(fullVuePath, styleNodes[fullVuePath]);
+    }
+  }
+
+  addCSS(fullVuePath, cssText) {
     let localVuePath = this.getLocalVueFilePath(fullVuePath);
-    if(overwrite || !this.vueFileToCSSMap[localVuePath]) {
+    if(!this.vueFileToCSSMap[localVuePath]) {
       this.vueFileToCSSMap[localVuePath] = [];
     }
     let css = cssText.trim();
