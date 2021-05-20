@@ -31,7 +31,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   try {
     eleventyConfig.versionCheck(pkg["11ty"].compatibility);
   } catch(e) {
-    console.log( `WARN: Eleventy plugin (${pkg.name}) compatibility: ${e.message}` );
+    console.log( `WARN: Eleventy Plugin (${pkg.name}) Compatibility: ${e.message}` );
   }
 
   let options = lodashMerge({}, globalOptions, configGlobalOptions);
