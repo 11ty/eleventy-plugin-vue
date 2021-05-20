@@ -28,6 +28,12 @@ const globalOptions = {
 };
 
 module.exports = function(eleventyConfig, configGlobalOptions = {}) {
+  try {
+    eleventyConfig.versionCheck(pkg["11ty"].compatibility);
+  } catch(e) {
+    console.log( `WARN: Eleventy plugin (${pkg.name}) compatibility: ${e.message}` );
+  }
+
   let options = lodashMerge({}, globalOptions, configGlobalOptions);
 
   let eleventyVue = new EleventyVue();

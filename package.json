@@ -32,8 +32,8 @@
     "url": "https://github.com/11ty/eleventy-plugin-vue/issues"
   },
   "homepage": "https://github.com/11ty/eleventy-plugin-vue#readme",
-  "peerDependencies": {
-    "@11ty/eleventy": ">=0.11.0"
+  "11ty": {
+    "compatibility": ">=0.11 || >=1.0.0-canary"
   },
   "ava": {
     "failFast": false,
