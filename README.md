@@ -38,6 +38,7 @@ npm install @11ty/eleventy-plugin-vue
 * Does not yet embed any client-side JavaScript from inside single file components into the output for use on the client. Any JavaScript embedded there is used only for rendering templates in the build and does not show up in the output.
   * Note that if this is added in the future, it will likely be an opt-in feature.
 * `lang` on `<template>`, `<style>`, or `<script>` is not yet supported.
+* Windows support
 
 ### Warnings
 
