@@ -386,15 +386,29 @@ class EleventyVue {
       });
     }
 
-    // Full data cascade is available to the root template component
     if(!vueComponent.mixins) {
       vueComponent.mixins = [];
     }
-    vueComponent.mixins.push({
-      data: function() {
+    
+    // Full data cascade is available to the root template component
+    let dataMixin = {
+      data: function eleventyFullDataCascade() {
         return data;
       },
+    };
+    
+    // remove any existing eleventyFullDataCascade mixins
+    vueComponent.mixins = vueComponent.mixins.filter(entry => {
+      if(entry &&
+        entry.data &&
+        typeof entry.data === "function" &&
+        entry.data.toString() === dataMixin.data.toString()) {
+        return false;
+      }
+      return true;
     });
+    
+    vueComponent.mixins.push(dataMixin);
 
     const app = new Vue(vueComponent);
 

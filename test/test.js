@@ -247,3 +247,31 @@ test.skip("Vue as Layout file (Issue #26)", async t => {
 	<div data-server-rendered="true">Child content</div>
 </html>`);
 });
+
+test("Vue SFC Data Leak", async t => {
+	let ev = new EleventyVue();
+	ev.setCacheDir(".cache/vue-data-leak");
+	ev.setInputDir("test/stubs-data-leak");
+
+	let files = await ev.findFiles();
+	let bundle = await ev.getBundle(files);
+	let output = await ev.write(bundle);
+	ev.createVueComponents(output);
+	t.is(output.length, 3);
+
+	let component = ev.getComponent("./test/stubs-data-leak/index.vue");
+
+	let data = {
+		events: [
+			{a: 1, b: 2},
+			{c: 3, d: 4},
+		]
+	};
+
+	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+	t.is(component.mixins.length, 1);
+	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+	t.is(component.mixins.length, 1);
+	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+	t.is(component.mixins.length, 1);
+});
