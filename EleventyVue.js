@@ -192,6 +192,12 @@ class EleventyVue {
 
     debug("Processing %o Vue files", input.length);
 
+    if(!this.readOnly) {
+      await fsp.mkdir(this.cacheDir, {
+        recursive: true
+      });
+    }
+
     let bundle = await rollup.rollup({
       input: input,
       plugins: [
