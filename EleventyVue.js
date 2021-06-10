@@ -22,6 +22,7 @@ class EleventyVue {
 
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
+    this.componentRelationships = [];
 
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
@@ -37,12 +38,11 @@ class EleventyVue {
     this.setCacheDir(cacheDirectory);
 
     this.componentsWriteCount = 0;
-
-    this.bypassRollupCache = false;
+    this.readOnly = false;
   }
 
-  setBypassRollupCache(enabled) {
-    this.bypassRollupCache = !!enabled;
+  setReadOnly(readOnly) {
+    this.readOnly = !!readOnly;
   }
 
   getEntryFileName(localpath) {
@@ -61,6 +61,7 @@ class EleventyVue {
 
   reset() {
     this.vueFileToCSSMap = {};
+    this.componentRelationships = [];
   }
 
   // Deprecated, use resetCSSFor above
@@ -199,7 +200,7 @@ class EleventyVue {
             this.resetCSSFor(styleNodes);
             this.addRawCSS(styleNodes);
 
-            if(this.bypassRollupCache && !isSubsetOfFiles) {
+            if(!this.readOnly && !isSubsetOfFiles) {
               await this.writeRollupOutputCacheCss(styleNodes);
             }
           }
@@ -235,26 +236,54 @@ class EleventyVue {
     return fs.existsSync(this.bypassRollupCacheFile) && fs.existsSync(this.bypassRollupCacheCssFile);
   }
 
-  async writeRollupOutputCache(output) {
+  async writeRollupOutputCache() {
+    if(this.readOnly) {
+      return;
+    }
+
     debug("Writing rollup cache to file system %o", this.bypassRollupCacheFile);
-    return fsp.writeFile(this.bypassRollupCacheFile, JSON.stringify(output, null, 2));
+    return fsp.writeFile(this.bypassRollupCacheFile, JSON.stringify({
+      vueToJs: this.vueFileToJavaScriptFilenameMap,
+      relationships: this.componentRelationships
+    }, null, 2));
   }
 
   async writeRollupOutputCacheCss(styleNodes) {
+    if(this.readOnly) {
+      return;
+    }
+
     debug("Writing rollup cache CSS to file system %o", this.bypassRollupCacheCssFile);
     return fsp.writeFile(this.bypassRollupCacheCssFile, JSON.stringify(styleNodes, null, 2));
   }
 
-  async fetchRollupOutputCache() {
+  async loadRollupOutputCache() {
     debugDev("Using rollup file system cache to bypass rollup.");
     let styleNodes = JSON.parse(await fsp.readFile(this.bypassRollupCacheCssFile, "utf8"));
     this.addRawCSS(styleNodes);
 
-    let output = JSON.parse(await fsp.readFile(this.bypassRollupCacheFile, "utf8"));
-    return output;
+    let { vueToJs, relationships } = JSON.parse(await fsp.readFile(this.bypassRollupCacheFile, "utf8"));
+    this.vueFileToJavaScriptFilenameMap = vueToJs;
+    this.componentRelationships = relationships;
+
+    if(this.cssManager) {
+      // Re-insert CSS code in the CSS manager
+      for(let localVuePath in vueToJs) {
+        let css = this.getCSSForComponent(localVuePath);
+        if(css) {
+          let jsFilename = vueToJs[localVuePath];
+          this.cssManager.addComponentCode(jsFilename, css);
+        }
+      }
+
+      // Re-establish both component relationships
+      for(let relation of this.componentRelationships) {
+        this.cssManager.addComponentRelationship(relation.from, relation.to);
+      }
+    }
   }
 
-  // output is returned from .write() or .generate() or .fetchRollupOutputCache()
+  // output is returned from .write() or .generate()
   createVueComponents(output) {
     this.componentsWriteCount = 0;
     for(let entry of output) {
@@ -294,6 +323,8 @@ class EleventyVue {
           if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
             continue;
           }
+
+          this.componentRelationships.push({ from: jsFilename, to: importFilename });
           this.cssManager.addComponentRelationship(jsFilename, importFilename);
         }
       }
@@ -338,9 +369,11 @@ class EleventyVue {
       this.vueFileToCSSMap[localVuePath] = [];
     }
     let css = cssText.trim();
-    debugDev("Adding CSS to %o, length: %o", localVuePath, css.length);
-
-    this.vueFileToCSSMap[localVuePath].push(css);
+    if(css) {
+      debugDev("Adding CSS to %o, length: %o", localVuePath, css.length);
+      
+      this.vueFileToCSSMap[localVuePath].push(css);
+    }
   }
 
   getCSSForComponent(localVuePath) {

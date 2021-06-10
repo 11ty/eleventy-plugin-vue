@@ -16,9 +16,9 @@ const globalOptions = {
   searchIncludesDirectoryForLayouts: false,
   searchLayoutsDirectoryForLayouts: false,
 
-  cacheDirectory: ".cache/vue/",
+  readOnly: false,
 
-  cacheRollupOutputToFileSystem: false,
+  cacheDirectory: ".cache/vue/",
 
   // See https://rollup-plugin-vue.vuejs.org/options.html
   rollupPluginVueOptions: {},
@@ -38,7 +38,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   let eleventyVue = new EleventyVue();
   eleventyVue.setCacheDir(options.cacheDirectory);
-  eleventyVue.setBypassRollupCache(options.cacheRollupOutputToFileSystem);
+  eleventyVue.setReadOnly(options.readOnly);
 
   let cssManager = options.assets.css || new InlineCodeManager();
   eleventyVue.setCssManager(cssManager);
@@ -102,9 +102,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       if(skipVueBuild) {
         // we only call this to set the write count for the build
         eleventyVue.createVueComponents([]);
-      } else if(options.cacheRollupOutputToFileSystem && eleventyVue.hasRollupOutputCache()) {
-        let output = await eleventyVue.fetchRollupOutputCache();
-        eleventyVue.createVueComponents(output);
+      } else if(options.readOnly && eleventyVue.hasRollupOutputCache()) {
+        await eleventyVue.loadRollupOutputCache();
       } else {
         let files = changedVueFilesOnWatch;
         let isSubset = false;
@@ -124,11 +123,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         let bundle = await eleventyVue.getBundle(files, isSubset);
         let output = await eleventyVue.write(bundle);
 
-        if(options.cacheRollupOutputToFileSystem && !isSubset) { // implied eleventyVue.hasRollupOutputCache() was false
-          await eleventyVue.writeRollupOutputCache(output);
-        }
-
         eleventyVue.createVueComponents(output);
+
+        if(!options.readOnly && !isSubset) { // implied eleventyVue.hasRollupOutputCache() was false
+          await eleventyVue.writeRollupOutputCache();
+        }
       }
     },
     compile: function(str, inputPath) {
@@ -145,7 +144,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         }
 
         let vueComponent = eleventyVue.getComponent(data.page.inputPath);
-
         let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);
         debug("Vue CSS: Adding component %o to %o", componentName, data.page.url);
         cssManager.addComponentForUrl(componentName, data.page.url);
