@@ -376,18 +376,6 @@ class EleventyVue {
     }
   }
 
-  addCSSViaLocalPath(localVuePath, cssText) {
-    if(!this.vueFileToCSSMap[localVuePath]) {
-      this.vueFileToCSSMap[localVuePath] = [];
-    }
-    let css = cssText.trim();
-    if(css) {
-      debugDev("Adding CSS to %o, length: %o", localVuePath, css.length);
-      
-      this.vueFileToCSSMap[localVuePath].push(css);
-    }
-  }
-
   addRawCSS(styleNodes) {
     for(let fullVuePath in styleNodes) {
       this.addCSS(fullVuePath, styleNodes[fullVuePath]);
@@ -396,6 +384,10 @@ class EleventyVue {
 
   addCSS(fullVuePath, cssText) {
     let localVuePath = this.getLocalVueFilePath(fullVuePath);
+    this.addCSSViaLocalPath(localVuePath, cssText);
+  }
+
+  addCSSViaLocalPath(localVuePath, cssText) {
     if(!this.vueFileToCSSMap[localVuePath]) {
       this.vueFileToCSSMap[localVuePath] = [];
     }
