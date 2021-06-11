@@ -258,15 +258,28 @@ class EleventyVue {
     if(this.readOnly) {
       return;
     }
-
+    // convert to local paths
+    let localPathStyleNodes = {};
+    for(let fullVuePath in styleNodes) {
+      let localVuePath = this.getLocalVueFilePath(fullVuePath);
+      // one file can have multiple CSS blocks
+      if(!localPathStyleNodes[localVuePath]) {
+        localPathStyleNodes[localVuePath] = [];
+      }
+      localPathStyleNodes[localVuePath].push(styleNodes[fullVuePath]);
+    }
     debug("Writing rollup cache CSS to file system %o", this.bypassRollupCacheCssFile);
-    return fsp.writeFile(this.bypassRollupCacheCssFile, JSON.stringify(styleNodes, null, 2));
+    return fsp.writeFile(this.bypassRollupCacheCssFile, JSON.stringify(localPathStyleNodes, null, 2));
   }
 
   async loadRollupOutputCache() {
     debugDev("Using rollup file system cache to bypass rollup.");
     let styleNodes = JSON.parse(await fsp.readFile(this.bypassRollupCacheCssFile, "utf8"));
-    this.addRawCSS(styleNodes);
+    for(let localVuePath in styleNodes) {
+      for(let css of styleNodes[localVuePath]) {
+        this.addCSSViaLocalPath(localVuePath, css);
+      }
+    }
 
     let { vueToJs, relationships } = JSON.parse(await fsp.readFile(this.bypassRollupCacheFile, "utf8"));
     this.vueFileToJavaScriptFilenameMap = vueToJs;
@@ -360,6 +373,18 @@ class EleventyVue {
         let jsFilename = this.getJavaScriptComponentFile(localVuePath);
         this.cssManager.resetComponentCodeFor(jsFilename);
       }
+    }
+  }
+
+  addCSSViaLocalPath(localVuePath, cssText) {
+    if(!this.vueFileToCSSMap[localVuePath]) {
+      this.vueFileToCSSMap[localVuePath] = [];
+    }
+    let css = cssText.trim();
+    if(css) {
+      debugDev("Adding CSS to %o, length: %o", localVuePath, css.length);
+      
+      this.vueFileToCSSMap[localVuePath].push(css);
     }
   }
 
