@@ -8,9 +8,8 @@ const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCssOnly = require("rollup-plugin-css-only");
 
-const Vue = require("vue");
-const vueServerRenderer = require("vue-server-renderer");
-const renderer = vueServerRenderer.createRenderer();
+const { createSSRApp } = require("vue");
+const { renderToString } = require("@vue/server-renderer");
 
 const debug = require("debug")("EleventyVue");
 const debugDev = require("debug")("Dev:EleventyVue");
@@ -26,7 +25,7 @@ class EleventyVue {
 
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
-      exports: "default",
+      exports: "auto",
       preserveModules: true, // keeps separate files on the file system
       // dir: this.cacheDir // set via setCacheDir
       entryFileNames: (chunkInfo) => {
@@ -200,6 +199,10 @@ class EleventyVue {
 
     let bundle = await rollup.rollup({
       input: input,
+      external: [
+        // TODO make this extensible
+        "vue",
+      ],
       plugins: [
         rollupPluginCssOnly({
           output: async (styles, styleNodes) => {
@@ -307,17 +310,12 @@ class EleventyVue {
     this.componentsWriteCount = 0;
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
-      // if(entry.fileName.endsWith("rollup-plugin-vue=script.js") ||
-      if(fullVuePath.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.mjs"))) {
-        continue;
-      }
-
       let inputPath = this.getLocalVueFilePath(fullVuePath);
       let jsFilename = entry.fileName;
       let intermediateComponent = false;
       let css;
 
-      if(fullVuePath.endsWith("?rollup-plugin-vue=script.js")) {
+      if(fullVuePath.endsWith("&lang.js")) {
         intermediateComponent = true;
         css = false;
       } else {
@@ -427,49 +425,24 @@ class EleventyVue {
     return component;
   }
 
-  async renderComponent(vueComponent, data, mixin = {}) {
-    Vue.mixin(mixin);
-
-    // We don’t use a local mixin for this because it’s global to all components
-    // We don’t use a global mixin for this because modifies the Vue object and
-    // leaks into other templates (reports wrong page.url!)
-    if(!("page" in Vue.prototype)) {
-      Object.defineProperty(Vue.prototype, "page", {
-        get () {
-          // https://vuejs.org/v2/api/#vm-root
-          return this.$root.$options.data().page;
-        }
-      });
-    }
-
-    if(!vueComponent.mixins) {
-      vueComponent.mixins = [];
-    }
+  async renderComponent(vueComponent, pageData, mixin = {}) {
+    // console.log( pageData );
+    const app = createSSRApp(vueComponent);
+    // Allow `page` to be accessed inside any Vue component
+    // https://v3.vuejs.org/api/application-config.html#globalproperties
+    app.config.globalProperties.page = pageData.page;
     
+    app.mixin(mixin);
+
     // Full data cascade is available to the root template component
-    let dataMixin = {
-      data: function eleventyFullDataCascade() {
-        return data;
+    app.mixin({
+      data: function() {
+        return pageData;
       },
-    };
-    
-    // remove any existing eleventyFullDataCascade mixins
-    vueComponent.mixins = vueComponent.mixins.filter(entry => {
-      if(entry &&
-        entry.data &&
-        typeof entry.data === "function" &&
-        entry.data.toString() === dataMixin.data.toString()) {
-        return false;
-      }
-      return true;
     });
-    
-    vueComponent.mixins.push(dataMixin);
-
-    const app = new Vue(vueComponent);
 
     // returns a promise
-    return renderer.renderToString(app);
+    return renderToString(app);
   }
 }
 

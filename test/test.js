@@ -68,15 +68,14 @@ test("Vue SFC Render", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
 	let component = ev.getComponent("./test/stubs-a/data.vue");
-
 	t.is(await ev.renderComponent(component, {
 		page: {
 			url: "/some-url/"
 		}
-	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p> <div id="child"></div></div>`);
+	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"></div></div>`);
 });
 
 test("Vue SFC Render (one input file)", async t => {
@@ -91,7 +90,7 @@ test("Vue SFC Render (one input file)", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
 	let component = ev.getComponent("./test/stubs-b/data.vue");
 
@@ -99,7 +98,7 @@ test("Vue SFC Render (one input file)", async t => {
 		page: {
 			url: "/some-url/"
 		}
-	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p> <div id="child"></div></div>`);
+	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"></div></div>`);
 });
 
 test("Vue SFC CSS", async t => {
@@ -116,7 +115,7 @@ test("Vue SFC CSS", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
 	t.is(ev.getCSSForComponent("./test/stubs-c/data.vue"), `body {
 	background-color: blue;
@@ -125,19 +124,16 @@ body {
 	background-color: pink;
 }`);
 
-	t.is(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue"), `#child { color: green;
-}`);
+	t.is(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue"), `#child { color: green; }`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-c/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* test/stubs-c/_includes/grandchild.js Component */
-#grandchild { color: yellow;
-}
-/* test/stubs-c/_includes/child.js Component */
-#child { color: green;
-}
-/* test/stubs-c/data.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* _includes/grandchild.js Component */
+#grandchild { color: yellow; }
+/* _includes/child.js Component */
+#child { color: green; }
+/* data.js Component */
 body {
 	background-color: blue;
 }
@@ -162,7 +158,7 @@ test("Vue SFC CSS (one input file)", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
 	t.is(ev.getCSSForComponent("./test/stubs-d/data.vue"), `body {
 	background-color: blue;
@@ -171,19 +167,16 @@ body {
 	background-color: pink;
 }`);
 
-	t.is(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue"), `#child { color: green;
-}`);
+	t.is(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue"), `#child { color: green; }`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-d/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* test/stubs-d/_includes/grandchild.js Component */
-#grandchild { color: yellow;
-}
-/* test/stubs-d/_includes/child.js Component */
-#child { color: green;
-}
-/* test/stubs-d/data.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* _includes/grandchild.js Component */
+#grandchild { color: yellow; }
+/* _includes/child.js Component */
+#child { color: green; }
+/* data.js Component */
 body {
 	background-color: blue;
 }
@@ -214,7 +207,7 @@ test("Vue SFC CSS (one component, no children) Issue #10", async t => {
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-e/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* test/stubs-e/data.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* data.js Component */
 body {
 	background-color: blue;
 }`);
@@ -268,10 +261,7 @@ test("Vue SFC Data Leak", async t => {
 		]
 	};
 
-	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
-	t.is(component.mixins.length, 1);
-	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
-	t.is(component.mixins.length, 1);
-	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
-	t.is(component.mixins.length, 1);
+	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
 });
