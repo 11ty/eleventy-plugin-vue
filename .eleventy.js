@@ -120,10 +120,17 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
           }
         }
 
-        let bundle = await eleventyVue.getBundle(files, isSubset);
-        let output = await eleventyVue.write(bundle);
-
-        eleventyVue.createVueComponents(output);
+        try {
+          let bundle = await eleventyVue.getBundle(files, isSubset);
+          let output = await eleventyVue.write(bundle);
+  
+          eleventyVue.createVueComponents(output);
+        } catch(e) {
+          if(e.loc) {
+            e.message = `Error in Vue file ${e.loc.file} on Line ${e.loc.line} Column ${e.loc.column}: ${e.message}`
+          }
+          throw e;
+        }
 
         if(!options.readOnly && !isSubset) { // implied eleventyVue.hasRollupOutputCache() was false
           await eleventyVue.writeRollupOutputCache();
