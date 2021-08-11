@@ -6,6 +6,7 @@ const { InlineCodeManager } = require("@11ty/eleventy-assets");
 const EleventyVue = require("./EleventyVue");
 
 const pkg = require("./package.json");
+const {version} = require("vue");
 
 const globalOptions = {
   input: [], // point to a specific list of Vue files (defaults to **/*.vue)
@@ -65,7 +66,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   eleventyConfig.on("afterBuild", () => {
     let count = eleventyVue.componentsWriteCount;
     if(count > 0) {
-      console.log( `Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version})` );
+      console.log( `Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version}${version ? ` with Vue ${version}` : ""})` );
     }
   });
 
