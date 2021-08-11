@@ -23,20 +23,6 @@ class EleventyVue {
     this.vueFileToJavaScriptFilenameMap = {};
     this.componentRelationships = [];
 
-    this.defaultRollupOptions = {
-      onwarn (warning, warn) {
-        if(warning.code === "UNUSED_EXTERNAL_IMPORT") {
-          debug("Unused external import: %O", warning);
-        } else {
-          warn(warning);
-        }
-      },
-      external: [
-        "vue",
-        "@vue/server-renderer",
-      ]
-    };
-
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
       exports: "auto",
@@ -215,10 +201,12 @@ class EleventyVue {
       });
     }
 
-    let options = lodashMerge({}, this.defaultRollupOptions, this.rollupOptions);
+    let options = lodashMerge({}, this.rollupOptions);
 
     options.input = input;
-    options.plugins = options.plugins || [];
+    if(!options.plugins) {
+      options.plugins = [];
+    }
 
     options.plugins.unshift(rollupPluginVue(this.getRollupPluginVueOptions()));
     options.plugins.unshift(rollupPluginCssOnly({
@@ -232,8 +220,24 @@ class EleventyVue {
       }
     }));
 
-    let bundle = await rollup.rollup(options);
+    // Hide warnings about treeshaking/unused externals
+    if(!options.onwarn) {
+      options.onwarn = function (warning, warn) {
+        if(warning.code === "UNUSED_EXTERNAL_IMPORT") {
+          debug("Unused external import: %O", warning);
+        } else {
+          warn(warning);
+        }
+      };
+    }
 
+    if(!options.external) {
+      options.external = [];
+    }
+    options.external.push("vue");
+    options.external.push("@vue/server-renderer");
+
+    let bundle = await rollup.rollup(options);
     return bundle;
   }
 

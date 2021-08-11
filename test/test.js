@@ -265,3 +265,41 @@ test("Vue SFC Data Leak", async t => {
 	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
 	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
 });
+
+test("Vue SFC CSS postcss Plugin", async t => {
+	let ev = new EleventyVue();
+	ev.setCacheDir(".cache/vue-test-postcss");
+	ev.setInputDir("test/stubs-postcss");
+	ev.setIncludesDir("_includes");
+
+	ev.setRollupPluginVueOptions({
+		postcssPlugins: [
+			require("postcss-nested")
+		]
+	});
+
+	let cssMgr = new InlineCodeManager();
+	ev.setCssManager(cssMgr);
+
+	let files = await ev.findFiles();
+	let bundle = await ev.getBundle(files);
+	let output = await ev.write(bundle);
+
+	ev.createVueComponents(output);
+	t.is(output.length, 3);
+
+	t.is(ev.getCSSForComponent("./test/stubs-postcss/data.vue"), `body {
+	background-color: blue;
+	color: black;
+}`);
+
+	let componentName = ev.getJavaScriptComponentFile("./test/stubs-postcss/data.vue");
+	cssMgr.addComponentForUrl(componentName, "/data/");
+
+	t.is(cssMgr.getCodeForUrl("/data/"), `/* data.js Component */
+body {
+	background-color: blue;
+	color: black;
+}`);
+	
+});

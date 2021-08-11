@@ -57,6 +57,7 @@
     "@vue/compiler-sfc": "^3.2.1"
   },
   "devDependencies": {
-    "ava": "^3.15.0"
+    "ava": "^3.15.0",
+    "postcss-nested": "^5.0.6"
   }
 }
