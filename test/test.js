@@ -124,15 +124,18 @@ body {
 	background-color: pink;
 }`);
 
-	t.is(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue"), `#child { color: green; }`);
+	t.is(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue"), `#child { color: green;
+}`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-c/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
 	t.is(cssMgr.getCodeForUrl("/data/"), `/* _includes/grandchild.js Component */
-#grandchild { color: yellow; }
+#grandchild { color: yellow;
+}
 /* _includes/child.js Component */
-#child { color: green; }
+#child { color: green;
+}
 /* data.js Component */
 body {
 	background-color: blue;
@@ -167,15 +170,18 @@ body {
 	background-color: pink;
 }`);
 
-	t.is(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue"), `#child { color: green; }`);
+	t.is(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue"), `#child { color: green;
+}`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-d/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
 	t.is(cssMgr.getCodeForUrl("/data/"), `/* _includes/grandchild.js Component */
-#grandchild { color: yellow; }
+#grandchild { color: yellow;
+}
 /* _includes/child.js Component */
-#child { color: green; }
+#child { color: green;
+}
 /* data.js Component */
 body {
 	background-color: blue;
@@ -272,11 +278,23 @@ test("Vue SFC CSS postcss Plugin", async t => {
 	ev.setInputDir("test/stubs-postcss");
 	ev.setIncludesDir("_includes");
 
+	ev.setRollupOptions({
+		external: ["testtesttest"]
+	});
+
 	ev.setRollupPluginVueOptions({
 		postcssPlugins: [
 			require("postcss-nested")
 		]
 	});
+
+	let rollupOptions = ev.getMergedRollupOptions();
+	t.deepEqual(rollupOptions.external, [
+		"vue",
+		"@vue/server-renderer",
+		"testtesttest"
+	]);
+	t.is(rollupOptions.plugins.length, 2);
 
 	let cssMgr = new InlineCodeManager();
 	ev.setCssManager(cssMgr);
@@ -290,7 +308,9 @@ test("Vue SFC CSS postcss Plugin", async t => {
 
 	t.is(ev.getCSSForComponent("./test/stubs-postcss/data.vue"), `body {
 	background-color: blue;
-	color: black;
+}
+body {
+		color: black;
 }`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-postcss/data.vue");
@@ -299,7 +319,9 @@ test("Vue SFC CSS postcss Plugin", async t => {
 	t.is(cssMgr.getCodeForUrl("/data/"), `/* data.js Component */
 body {
 	background-color: blue;
-	color: black;
+}
+body {
+		color: black;
 }`);
 	
 });

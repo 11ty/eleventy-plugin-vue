@@ -77,6 +77,47 @@ class EleventyVue {
     this.rollupOptions = options;
   }
 
+  getMergedRollupOptions(input, isSubsetOfFiles) {
+    let options = {
+      input: input,
+      onwarn (warning, warn) {
+        if(warning.code === "UNUSED_EXTERNAL_IMPORT") {
+          debug("Unused external import: %O", warning);
+        } else {
+          warn(warning);
+        }
+      },
+      external: [
+        "vue",
+        "@vue/server-renderer"
+      ],
+      plugins: [
+        rollupPluginVue(this.getRollupPluginVueOptions()),
+        rollupPluginCssOnly({
+          output: async (styles, styleNodes) => {
+            this.resetCSSFor(styleNodes);
+            this.addRawCSS(styleNodes);
+
+            if(!this.readOnly && !isSubsetOfFiles) {
+              await this.writeRollupOutputCacheCss(styleNodes);
+            }
+          }
+        }),
+      ]
+    };
+
+    for(let key in this.rollupOptions) {
+      if(key === "external" || key === "plugins") {
+        // merge the Array
+        options[key] = options[key].concat(this.rollupOptions[key]);
+      } else {
+        options[key] = this.rollupOptions[key];
+      }
+    }
+
+    return options;
+  }
+
   setRollupPluginVueOptions(rollupPluginVueOptions) {
     this.rollupPluginVueOptions = rollupPluginVueOptions;
   }
@@ -201,43 +242,9 @@ class EleventyVue {
       });
     }
 
-    let options = lodashMerge({}, this.rollupOptions);
-
-    options.input = input;
-    if(!options.plugins) {
-      options.plugins = [];
-    }
-
-    options.plugins.unshift(rollupPluginVue(this.getRollupPluginVueOptions()));
-    options.plugins.unshift(rollupPluginCssOnly({
-      output: async (styles, styleNodes) => {
-        this.resetCSSFor(styleNodes);
-        this.addRawCSS(styleNodes);
-
-        if(!this.readOnly && !isSubsetOfFiles) {
-          await this.writeRollupOutputCacheCss(styleNodes);
-        }
-      }
-    }));
-
-    // Hide warnings about treeshaking/unused externals
-    if(!options.onwarn) {
-      options.onwarn = function (warning, warn) {
-        if(warning.code === "UNUSED_EXTERNAL_IMPORT") {
-          debug("Unused external import: %O", warning);
-        } else {
-          warn(warning);
-        }
-      };
-    }
-
-    if(!options.external) {
-      options.external = [];
-    }
-    options.external.push("vue");
-    options.external.push("@vue/server-renderer");
-
+    let options = this.getMergedRollupOptions(input, isSubsetOfFiles);
     let bundle = await rollup.rollup(options);
+
     return bundle;
   }
 
