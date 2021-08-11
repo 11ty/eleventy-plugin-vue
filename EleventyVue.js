@@ -147,6 +147,7 @@ class EleventyVue {
     return filepath.startsWith(this.includesDir);
   }
 
+  // TODO pass in a filename and only clear the appropriate files
   clearRequireCache() {
     let fullCacheDir = this.getFullCacheDir();
     let deleteCount = 0;
@@ -199,8 +200,8 @@ class EleventyVue {
 
     let bundle = await rollup.rollup({
       input: input,
+      // TODO make this extensible
       external: [
-        // TODO make this extensible
         "vue",
       ],
       plugins: [
@@ -337,6 +338,7 @@ class EleventyVue {
         // debugDev("modules: %O", Object.keys(entry.modules));
 
         for(let importFilename of importList) {
+          // TODO is this necessary?
           if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
             continue;
           }
