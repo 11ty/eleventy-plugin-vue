@@ -23,6 +23,20 @@ class EleventyVue {
     this.vueFileToJavaScriptFilenameMap = {};
     this.componentRelationships = [];
 
+    this.defaultRollupOptions = {
+      onwarn (warning, warn) {
+        if(warning.code === "UNUSED_EXTERNAL_IMPORT") {
+          debug("Unused external import: %O", warning);
+        } else {
+          warn(warning);
+        }
+      },
+      external: [
+        "vue",
+        "@vue/server-renderer",
+      ]
+    };
+
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
       exports: "auto",
@@ -73,16 +87,19 @@ class EleventyVue {
     this.cssManager = cssManager;
   }
 
+  setRollupOptions(options) {
+    this.rollupOptions = options;
+  }
+
   setRollupPluginVueOptions(rollupPluginVueOptions) {
     this.rollupPluginVueOptions = rollupPluginVueOptions;
   }
 
   getRollupPluginVueOptions() {
     return lodashMerge({
-      css: false,
-      template: {
-        optimizeSSR: true
-      }
+      target: "node",
+      exposeFilename: true,
+      // preprocessStyles: false, // false is default
       // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
     }, this.rollupPluginVueOptions);
   }
@@ -198,26 +215,24 @@ class EleventyVue {
       });
     }
 
-    let bundle = await rollup.rollup({
-      input: input,
-      // TODO make this extensible
-      external: [
-        "vue",
-      ],
-      plugins: [
-        rollupPluginCssOnly({
-          output: async (styles, styleNodes) => {
-            this.resetCSSFor(styleNodes);
-            this.addRawCSS(styleNodes);
+    let options = lodashMerge({}, this.defaultRollupOptions, this.rollupOptions);
 
-            if(!this.readOnly && !isSubsetOfFiles) {
-              await this.writeRollupOutputCacheCss(styleNodes);
-            }
-          }
-        }),
-        rollupPluginVue(this.getRollupPluginVueOptions())
-      ]
-    });
+    options.input = input;
+    options.plugins = options.plugins || [];
+
+    options.plugins.unshift(rollupPluginVue(this.getRollupPluginVueOptions()));
+    options.plugins.unshift(rollupPluginCssOnly({
+      output: async (styles, styleNodes) => {
+        this.resetCSSFor(styleNodes);
+        this.addRawCSS(styleNodes);
+
+        if(!this.readOnly && !isSubsetOfFiles) {
+          await this.writeRollupOutputCacheCss(styleNodes);
+        }
+      }
+    }));
+
+    let bundle = await rollup.rollup(options);
 
     return bundle;
   }

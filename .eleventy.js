@@ -20,8 +20,12 @@ const globalOptions = {
 
   cacheDirectory: ".cache/vue/",
 
+  // See https://www.rollupjs.org/guide/en/#big-list-of-options
+  rollupOptions: {},
+
   // See https://rollup-plugin-vue.vuejs.org/options.html
   rollupPluginVueOptions: {},
+
   assets: {
     css: null
   } // optional `eleventy-assets` instances
@@ -97,6 +101,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       eleventyVue.setIncludesDir(this.config.dir.includes, !options.searchIncludesDirectoryForLayouts);
       eleventyVue.setLayoutsDir(this.config.dir.layouts, !options.searchLayoutsDirectoryForLayouts);
 
+      eleventyVue.setRollupOptions(options.rollupOptions);
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
 
       if(skipVueBuild) {
