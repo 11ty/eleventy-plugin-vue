@@ -92,7 +92,10 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   eleventyConfig.addExtension("vue", {
     read: false, // We use rollup to read the files
-    getData: true,
+    getData: [ // get data from both the data function and serverPrefetch
+      "data",
+      "serverPrefetch"
+    ],
     getInstanceFromInputPath: function(inputPath) {
       return eleventyVue.getComponent(inputPath);
     },
