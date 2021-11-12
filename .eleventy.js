@@ -57,6 +57,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     return css;
   });
 
+  let eleventyIgnores;
+  eleventyConfig.on("eleventy.ignores", ignores => {
+    eleventyIgnores = ignores;
+  });
+
   // TODO check if verbose mode for console.log
   eleventyConfig.on("afterBuild", () => {
     let count = eleventyVue.componentsWriteCount;
@@ -92,10 +97,10 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       return eleventyVue.getComponent(inputPath);
     },
     init: async function() {
-      eleventyVue.resetIgnores();
       eleventyVue.setInputDir(this.config.inputDir);
       eleventyVue.setIncludesDir(this.config.dir.includes, !options.searchIncludesDirectoryForLayouts);
       eleventyVue.setLayoutsDir(this.config.dir.layouts, !options.searchLayoutsDirectoryForLayouts);
+      eleventyVue.resetIgnores(eleventyIgnores);
 
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
 
@@ -118,6 +123,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
           } else {
             files = await eleventyVue.findFiles();
           }
+        }
+
+        // quit early
+        if(!files || !files.length) {
+          return;
         }
 
         let bundle = await eleventyVue.getBundle(files, isSubset);
