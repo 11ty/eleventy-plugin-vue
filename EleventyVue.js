@@ -459,6 +459,14 @@ class EleventyVue {
     // Allow `page` to be accessed inside any Vue component
     // https://v3.vuejs.org/api/application-config.html#globalproperties
     app.config.globalProperties.page = pageData.page;
+
+    // TODO hook for app modifications
+    // app.config.warnHandler = function(msg, vm, trace) {
+    //   console.log( "[Vue 11ty] Warning", msg, vm, trace );
+    // };
+    // app.config.errorHandler = function(msg, vm, info) {
+    //   console.log( "[Vue 11ty] Error", msg, vm, info );
+    // };
     
     app.mixin(mixin);
 
