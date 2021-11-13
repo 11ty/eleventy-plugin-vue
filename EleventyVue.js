@@ -458,9 +458,14 @@ class EleventyVue {
     return component;
   }
 
+  async renderString(str, data, mixin = {}) {
+    return this.renderComponent({
+      template: str
+    }, data, mixin);
+  }
+
   async renderComponent(vueComponent, data, mixin = {}) {
     Vue.mixin(mixin);
-
     // We don’t use a local mixin for this because it’s global to all components
     // We don’t use a global mixin for this because modifies the Vue object and
     // leaks into other templates (reports wrong page.url!)
