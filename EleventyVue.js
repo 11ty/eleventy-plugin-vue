@@ -14,10 +14,26 @@ const { renderToString } = require("@vue/server-renderer");
 const debug = require("debug")("EleventyVue");
 const debugDev = require("debug")("Dev:EleventyVue");
 
+function addLeadingDotSlash(pathArg) {
+  if (pathArg === "." || pathArg === "..") {
+    return pathArg + "/";
+  }
+
+  if (
+    path.isAbsolute(pathArg) ||
+    pathArg.startsWith("./") ||
+    pathArg.startsWith("../")
+  ) {
+    return pathArg;
+  }
+
+  return "./" + pathArg;
+};
+
 class EleventyVue {
   constructor(cacheDirectory) {
     this.workingDir = path.resolve(".");
-    this.resetIgnores();
+    this.ignores = new Set();
 
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
@@ -131,13 +147,25 @@ class EleventyVue {
     }, this.rollupPluginVueOptions);
   }
 
-  resetIgnores() {
+  resetIgnores(extraIgnores = []) {
     this.ignores = new Set();
-    // TODO add gitignores and eleventyignores Issue #11
-    // this.ignores.add("**/node_modules/**");
+
+    let relativeIncludesDir = this.rawIncludesDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawIncludesDir)) : undefined;
+    let relativeLayoutsDir = this.rawLayoutsDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawLayoutsDir)) : undefined;
+
+    for(let ignore of extraIgnores) {
+      if(relativeIncludesDir && ignore.startsWith(relativeIncludesDir)) {
+        // do nothing
+      } else if(relativeLayoutsDir && ignore.startsWith(relativeLayoutsDir)) {
+        // do nothing
+      } else {
+        this.ignores.add(ignore);
+      }
+    }
   }
 
   setInputDir(inputDir) {
+    this.relativeInputDir = inputDir;
     this.inputDir = path.join(this.workingDir, inputDir);
   }
 
@@ -145,6 +173,7 @@ class EleventyVue {
     if(includesDir) {
       // Was: path.join(this.workingDir, includesDir);
       // Which seems wrong? per https://www.11ty.dev/docs/config/#directory-for-includes
+      this.rawIncludesDir = includesDir;
       this.includesDir = path.join(this.inputDir, includesDir);
 
       if(!useInFileSearch) {
@@ -155,6 +184,7 @@ class EleventyVue {
 
   setLayoutsDir(layoutsDir, useInFileSearch = true) {
     if(layoutsDir) {
+      this.rawLayoutsDir = layoutsDir;
       this.layoutsDir = path.join(this.inputDir, layoutsDir);
 
       if(!useInFileSearch) {
@@ -207,23 +237,24 @@ class EleventyVue {
 
   async findFiles(glob = "**/*.vue") {
     let globPaths = [
-      path.join(this.inputDir, glob)
+      addLeadingDotSlash(path.join(this.relativeInputDir, glob))
     ];
 
     if(this.includesDir && !this.includesDir.startsWith(this.inputDir)) {
       globPaths.push(
-        path.join(this.includesDir, glob)
+        addLeadingDotSlash(path.join(this.includesDir, glob))
       );
     }
 
     if(this.layoutsDir && !this.layoutsDir.startsWith(this.inputDir)) {
       globPaths.push(
-        path.join(this.layoutsDir, glob)
+        addLeadingDotSlash(path.join(this.layoutsDir, glob))
       );
     }
 
     return fastglob(globPaths, {
       caseSensitiveMatch: false,
+      // dot: true,
       ignore: Array.from(this.ignores),
     });
   }
