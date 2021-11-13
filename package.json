@@ -1,7 +1,7 @@
 {
   "name": "@11ty/eleventy-plugin-vue",
-  "version": "1.0.0-canary.3",
-  "description": "Use Vue 3 single file components in your Eleventy projects.",
+  "version": "1.0.0-canary.4",
+  "description": "Use Vue 3 single file components in Eleventy.",
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +33,7 @@
   },
   "homepage": "https://github.com/11ty/eleventy-plugin-vue#readme",
   "11ty": {
-    "compatibility": ">=1.0.0-canary.40"
+    "compatibility": ">=1.0.0-canary.40 || >=1.0.0-beta.1"
   },
   "ava": {
     "failFast": false,
