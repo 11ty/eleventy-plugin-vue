@@ -53,8 +53,7 @@
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-vue": "^6.0.0",
     "vue": "^3.2.1",
-    "@vue/server-renderer": "^3.2.1",
-    "@vue/compiler-sfc": "^3.2.1"
+    "@vue/server-renderer": "^3.2.1"
   },
   "devDependencies": {
     "ava": "^3.15.0",

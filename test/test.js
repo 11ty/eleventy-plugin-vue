@@ -291,6 +291,7 @@ test("Vue SFC CSS postcss Plugin", async t => {
 	let rollupOptions = ev.getMergedRollupOptions();
 	t.deepEqual(rollupOptions.external, [
 		"vue",
+		"vue/server-renderer",
 		"@vue/server-renderer",
 		"testtesttest"
 	]);

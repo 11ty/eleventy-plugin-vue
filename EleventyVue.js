@@ -105,7 +105,8 @@ class EleventyVue {
       },
       external: [
         "vue",
-        "@vue/server-renderer"
+        "vue/server-renderer",
+        "@vue/server-renderer",
       ],
       plugins: [
         rollupPluginVue(this.getRollupPluginVueOptions()),
@@ -484,6 +485,12 @@ class EleventyVue {
     return component;
   }
 
+  async renderString(str, data, mixin = {}) {
+    return this.renderComponent({
+      template: str
+    }, data, mixin);
+  }
+
   async renderComponent(vueComponent, pageData, mixin = {}) {
     // console.log( pageData );
     const app = createSSRApp(vueComponent);
@@ -498,7 +505,7 @@ class EleventyVue {
     // app.config.errorHandler = function(msg, vm, info) {
     //   console.log( "[Vue 11ty] Error", msg, vm, info );
     // };
-    
+
     app.mixin(mixin);
 
     // Full data cascade is available to the root template component

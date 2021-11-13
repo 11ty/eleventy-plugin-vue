@@ -162,21 +162,24 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         // since `read: false` is set 11ty doesn't read file contents
         // so if str has a value, it's a permalink (which can be a string or a function)
         // currently Vue template syntax in permalink string is not supported.
+        let vueMixin = {
+          methods: this.config.javascriptFunctions,
+        };
+
         if (str) {
           if(typeof str === "function") {
-            return await str(data);
+            return str(data);
+          }
+          if(typeof str === "string" && str.trim().charAt("0") === "<") {
+            return eleventyVue.renderString(str, data, vueMixin);
           }
           return str;
         }
 
-        let vueComponent = eleventyVue.getComponent(data.page.inputPath);
-        let componentName = eleventyVue.getJavaScriptComponentFile(data.page.inputPath);
+        let vueComponent = eleventyVue.getComponent(inputPath);
+        let componentName = eleventyVue.getJavaScriptComponentFile(inputPath);
         debug("Vue CSS: Adding component %o to %o", componentName, data.page.url);
         cssManager.addComponentForUrl(componentName, data.page.url);
-
-        let vueMixin = {
-          methods: this.config.javascriptFunctions,
-        };
 
         return eleventyVue.renderComponent(vueComponent, data, vueMixin);
       };
