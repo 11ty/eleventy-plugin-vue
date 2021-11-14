@@ -97,7 +97,7 @@ class EleventyVue {
 
   getMergedRollupOptions(input, isSubsetOfFiles) {
     let options = {
-      input: input,
+      input,
       onwarn (warning, warn) {
         if(warning.code === "UNUSED_EXTERNAL_IMPORT") {
           debug("Unused external import: %O", warning);
@@ -255,10 +255,12 @@ class EleventyVue {
       );
     }
 
+    let ignores = Array.from(this.ignores);
+    debug("Looking for %O and ignoring %O", globPaths, ignores);
     return fastglob(globPaths, {
       caseSensitiveMatch: false,
       // dot: true,
-      ignore: Array.from(this.ignores),
+      ignore: ignores,
     });
   }
 
@@ -276,6 +278,7 @@ class EleventyVue {
       });
     }
 
+    debug("Found these input files: %O", input);
     let options = this.getMergedRollupOptions(input, isSubsetOfFiles);
     let bundle = await rollup.rollup(options);
 
