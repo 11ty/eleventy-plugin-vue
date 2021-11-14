@@ -16,18 +16,18 @@ const debugDev = require("debug")("Dev:EleventyVue");
 
 function addLeadingDotSlash(pathArg) {
   if (pathArg === "." || pathArg === "..") {
-    return pathArg + "/";
+    return pathArg + path.sep;
   }
 
   if (
     path.isAbsolute(pathArg) ||
-    pathArg.startsWith("./") ||
-    pathArg.startsWith("../")
+    pathArg.startsWith("." + path.sep) ||
+    pathArg.startsWith(".." +  + path.sep)
   ) {
     return pathArg;
   }
 
-  return "./" + pathArg;
+  return "." + path.sep + pathArg;
 }
 
 class EleventyVue {
