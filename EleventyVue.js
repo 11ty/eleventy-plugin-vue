@@ -255,8 +255,11 @@ class EleventyVue {
       );
     }
 
-    let ignores = Array.from(this.ignores);
+    let ignores = Array.from(this.ignores).map(ignore => EleventyVue.forceForwardSlashOnFilePath(ignore));
+    globPaths = globPaths.map(path => EleventyVue.forceForwardSlashOnFilePath(path));
     debug("Looking for %O and ignoring %O", globPaths, ignores);
+
+    // MUST use forward slashes here (even in Windows), per fast-glob requirements
     return fastglob(globPaths, {
       caseSensitiveMatch: false,
       // dot: true,
@@ -546,6 +549,10 @@ class EleventyVue {
 
 EleventyVue.normalizeOperatingSystemFilePath = function(filePath, sep = "/") {
   return filePath.split(sep).join(path.sep);
+}
+
+EleventyVue.forceForwardSlashOnFilePath = function(filePath) {
+  return filePath.split(path.sep).join("/");
 }
 
 module.exports = EleventyVue;
