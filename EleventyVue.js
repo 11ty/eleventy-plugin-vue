@@ -474,6 +474,10 @@ class EleventyVue {
 
   getFullJavaScriptComponentFilePath(localVuePath) {
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
+    if(!jsFilename) {
+      throw new Error("Could not find compiled JavaScript file for Vue component: " + localVuePath);
+    }
+
     debugDev("Map vue path to JS component file: %o to %o", localVuePath, jsFilename);
     let fullComponentPath = path.join(this.getFullCacheDir(), jsFilename);
     return fullComponentPath;
