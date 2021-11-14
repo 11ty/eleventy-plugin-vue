@@ -199,10 +199,10 @@ class EleventyVue {
   // adds leading ./
   _createRequirePath(...paths) {
     let joined = path.join(...paths);
-    if(joined.startsWith("/")) {
+    if(joined.startsWith(path.sep)) {
       return joined;
     }
-    return `./${joined}`;
+    return `.${path.sep}${joined}`;
   }
 
   setCacheDir(cacheDir) {
