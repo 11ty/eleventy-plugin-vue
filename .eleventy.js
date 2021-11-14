@@ -67,10 +67,18 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     eleventyIgnores = ignores;
   });
 
-  // TODO check if verbose mode for console.log
+  // Default output
+  let isVerboseMode = true;
+  eleventyConfig.on("eleventy.config", config => {
+    // Available in 1.0.0-beta.6+
+    if(config.verbose !== undefined) {
+      isVerboseMode = config.verbose;
+    }
+  });
+
   eleventyConfig.on("afterBuild", () => {
     let count = eleventyVue.componentsWriteCount;
-    if(count > 0) {
+    if(isVerboseMode && count > 0) {
       console.log( `Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version}${version ? ` with Vue ${version}` : ""})` );
     }
   });
