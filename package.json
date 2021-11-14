@@ -8,7 +8,7 @@
   "main": ".eleventy.js",
   "scripts": {
     "test": "ava",
-    "testci": "DEBUG=EleventyVue* ava --verbose --serial",
+    "testci": "ava --verbose --serial",
     "sample": "npx @11ty/eleventy --input=test/sample"
   },
   "repository": {
