@@ -11,6 +11,10 @@ function getEvInstance() {
 	return ev;
 }
 
+function normalizeNewLines(str) {
+  return str.replace(/\r\n/g, "\n");
+}
+
 test("Directories", t => {
 	let ev = getEvInstance();
 	t.is(ev.cacheDir, ".cache");
@@ -118,20 +122,20 @@ test("Vue SFC CSS", async t => {
 	ev.createVueComponents(output);
 	t.is(output.length, 9);
 
-	t.is(ev.getCSSForComponent("./test/stubs-c/data.vue"), `body {
+	t.is(ev.getCSSForComponent("./test/stubs-c/data.vue"), normalizeNewLines(`body {
 	background-color: blue;
 }
 body {
 	background-color: pink;
-}`);
+}`));
 
-	t.is(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue"), `#child { color: green;
-}`);
+	t.is(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue"), normalizeNewLines(`#child { color: green;
+}`));
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-c/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* _includes/grandchild.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), normalizeNewLines(`/* _includes/grandchild.js Component */
 #grandchild { color: yellow;
 }
 /* _includes/child.js Component */
@@ -143,7 +147,7 @@ body {
 }
 body {
 	background-color: pink;
-}`);
+}`));
 	
 });
 
@@ -164,20 +168,20 @@ test("Vue SFC CSS (one input file)", async t => {
 	ev.createVueComponents(output);
 	t.is(output.length, 9);
 
-	t.is(ev.getCSSForComponent("./test/stubs-d/data.vue"), `body {
+	t.is(ev.getCSSForComponent("./test/stubs-d/data.vue"), normalizeNewLines(`body {
 	background-color: blue;
 }
 body {
 	background-color: pink;
-}`);
+}`));
 
-	t.is(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue"), `#child { color: green;
-}`);
+	t.is(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue"), normalizeNewLines(`#child { color: green;
+}`));
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-d/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* _includes/grandchild.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), normalizeNewLines(`/* _includes/grandchild.js Component */
 #grandchild { color: yellow;
 }
 /* _includes/child.js Component */
@@ -189,7 +193,7 @@ body {
 }
 body {
 	background-color: pink;
-}`);
+}`));
 	
 });
 
@@ -207,17 +211,17 @@ test("Vue SFC CSS (one component, no children) Issue #10", async t => {
 
 	ev.createVueComponents(output);
 
-	t.is(ev.getCSSForComponent("./test/stubs-e/data.vue"), `body {
+	t.is(ev.getCSSForComponent("./test/stubs-e/data.vue"), normalizeNewLines(`body {
 	background-color: blue;
-}`);
+}`));
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-e/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* data.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), normalizeNewLines(`/* data.js Component */
 body {
 	background-color: blue;
-}`);
+}`));
 	
 });
 
@@ -308,22 +312,22 @@ test("Vue SFC CSS postcss Plugin", async t => {
 	ev.createVueComponents(output);
 	t.is(output.length, 3);
 
-	t.is(ev.getCSSForComponent("./test/stubs-postcss/data.vue"), `body {
+	t.is(ev.getCSSForComponent("./test/stubs-postcss/data.vue"), normalizeNewLines(`body {
 	background-color: blue;
 }
 body {
 		color: black;
-}`);
+}`));
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-postcss/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* data.js Component */
+	t.is(cssMgr.getCodeForUrl("/data/"), normalizeNewLines(`/* data.js Component */
 body {
 	background-color: blue;
 }
 body {
 		color: black;
-}`);
+}`));
 	
 });
