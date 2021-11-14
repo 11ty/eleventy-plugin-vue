@@ -28,7 +28,7 @@ function addLeadingDotSlash(pathArg) {
   }
 
   return "./" + pathArg;
-};
+}
 
 class EleventyVue {
   constructor(cacheDirectory) {
@@ -472,6 +472,7 @@ class EleventyVue {
     return this.vueFileToJavaScriptFilenameMap[localVuePath];
   }
 
+  // localVuePath is already normalized to local OS directory separator at this point
   getFullJavaScriptComponentFilePath(localVuePath) {
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
     if(!jsFilename) {
@@ -484,7 +485,8 @@ class EleventyVue {
   }
 
   getComponent(localVuePath) {
-    let fullComponentPath = this.getFullJavaScriptComponentFilePath(localVuePath);
+    let filepath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+    let fullComponentPath = this.getFullJavaScriptComponentFilePath(filepath);
     let component = require(fullComponentPath);
     return component;
   }
@@ -522,6 +524,10 @@ class EleventyVue {
     // returns a promise
     return renderToString(app);
   }
+}
+
+EleventyVue.normalizeOperatingSystemFilePath = function(filePath, sep = "/") {
+  return filePath.split(sep).join(path.sep);
 }
 
 module.exports = EleventyVue;

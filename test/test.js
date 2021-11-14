@@ -3,10 +3,6 @@ const path = require("path");
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
 const EleventyVue = require("../EleventyVue");
 
-function normalizeOperatingSystemFilePath(filePath, sep = "/") {
-  return filePath.split(sep).join(path.sep);
-};
-
 function getEvInstance() {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache");
@@ -54,11 +50,11 @@ test("Can use absolute path for cache directory", t => {
 
 test("getLocalVueFilePath", t => {
 	let ev = getEvInstance();
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue")), normalizeOperatingSystemFilePath("./src/test.vue"));
-	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue")), normalizeOperatingSystemFilePath("./src/components/test.vue"));
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue?query=param")), normalizeOperatingSystemFilePath("./src/test.vue"));
-	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), normalizeOperatingSystemFilePath("./src/components/test.vue"));
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "press", "press-release.vue?rollup-plugin-vue=styles.0.css")), normalizeOperatingSystemFilePath("./src/press/press-release.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue")), EleventyVue.normalizeOperatingSystemFilePath("./src/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue")), EleventyVue.normalizeOperatingSystemFilePath("./src/components/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue?query=param")), EleventyVue.normalizeOperatingSystemFilePath("./src/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), EleventyVue.normalizeOperatingSystemFilePath("./src/components/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "press", "press-release.vue?rollup-plugin-vue=styles.0.css")), EleventyVue.normalizeOperatingSystemFilePath("./src/press/press-release.vue"));
 });
 
 test("Vue SFC Render", async t => {
@@ -88,7 +84,8 @@ test("Vue SFC Render (one input file)", async t => {
 	ev.setInputDir("test/stubs-b");
 	ev.setIncludesDir("_includes");
 
-	let inputFile = path.join(process.cwd(), "test/stubs-b/data.vue");
+	let filepath = EleventyVue.normalizeOperatingSystemFilePath("./test/stubs-b/data.vue");
+	let inputFile = path.join(process.cwd(), filepath);
 	let files = [inputFile];
 	let bundle = await ev.getBundle(files);
 	let output = await ev.write(bundle);
