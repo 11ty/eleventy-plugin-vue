@@ -81,6 +81,8 @@ class EleventyVue {
 
   // Deprecated, use resetCSSFor above
   resetFor(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     debug("Clearing CSS styleNodes in Vue for %o", localVuePath);
     this.vueFileToCSSMap[localVuePath] = [];
   }
@@ -350,6 +352,8 @@ class EleventyVue {
     if(this.cssManager) {
       // Re-insert CSS code in the CSS manager
       for(let localVuePath in vueToJs) {
+        localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
         let css = this.getCSSForComponent(localVuePath);
         if(css) {
           let jsFilename = vueToJs[localVuePath];
@@ -418,7 +422,8 @@ class EleventyVue {
       filePath = `.${fullPath.substr(this.workingDir.length)}`;
     }
     let extension = ".vue";
-    return filePath.substr(0, filePath.lastIndexOf(extension) + extension.length);
+    let localVuePath = filePath.substr(0, filePath.lastIndexOf(extension) + extension.length);
+    return EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
   }
 
   /* CSS */
@@ -446,6 +451,8 @@ class EleventyVue {
   }
 
   addCSSViaLocalPath(localVuePath, cssText) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     if(!this.vueFileToCSSMap[localVuePath]) {
       this.vueFileToCSSMap[localVuePath] = [];
     }
@@ -458,6 +465,8 @@ class EleventyVue {
   }
 
   getCSSForComponent(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     let css = (this.vueFileToCSSMap[localVuePath] || []).join("\n");
     debugDev("Getting CSS for component: %o, length: %o", localVuePath, css.length);
     return css;
@@ -465,15 +474,21 @@ class EleventyVue {
 
   /* Map from vue files to compiled JavaScript files */
   addVueToJavaScriptMapping(localVuePath, jsFilename) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     this.vueFileToJavaScriptFilenameMap[localVuePath] = jsFilename;
   }
 
   getJavaScriptComponentFile(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     return this.vueFileToJavaScriptFilenameMap[localVuePath];
   }
 
   // localVuePath is already normalized to local OS directory separator at this point
   getFullJavaScriptComponentFilePath(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
     if(!jsFilename) {
       throw new Error("Could not find compiled JavaScript file for Vue component: " + localVuePath);
