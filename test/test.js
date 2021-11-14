@@ -3,6 +3,10 @@ const path = require("path");
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
 const EleventyVue = require("../EleventyVue");
 
+function normalizeOperatingSystemFilePath(filePath, sep = "/") {
+  return filePath.split(sep).join(path.sep);
+};
+
 function getEvInstance() {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache");
@@ -50,11 +54,11 @@ test("Can use absolute path for cache directory", t => {
 
 test("getLocalVueFilePath", t => {
 	let ev = getEvInstance();
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue")), "./src/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue")), "./src/components/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue?query=param")), "./src/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), "./src/components/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "press", "press-release.vue?rollup-plugin-vue=styles.0.css")), "./src/press/press-release.vue");
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue")), normalizeOperatingSystemFilePath("./src/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue")), normalizeOperatingSystemFilePath("./src/components/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue?query=param")), normalizeOperatingSystemFilePath("./src/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), normalizeOperatingSystemFilePath("./src/components/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "press", "press-release.vue?rollup-plugin-vue=styles.0.css")), normalizeOperatingSystemFilePath("./src/press/press-release.vue"));
 });
 
 test("Vue SFC Render", async t => {
