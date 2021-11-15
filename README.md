@@ -10,9 +10,12 @@ Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and
 npm install @11ty/eleventy-plugin-vue
 ```
 
-* `1.x` requires to use Eleventy `1.0.0` or newer
-* `0.2.x` is encouraged to use Eleventy `0.11.1` or newer (for incremental Vue component builds)
-* `0.1.x` requires Eleventy `0.11.0` or newer
+* [`1.x` Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/6?closed=1): requires Eleventy `1.0.0` or newer
+* [`0.6.x` Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/5?closed=1)
+* …
+* `0.3.x` Milestones: [`0.3.0`](https://github.com/11ty/eleventy-plugin-vue/milestone/3?closed=1) and [`0.3.1`](https://github.com/11ty/eleventy-plugin-vue/milestone/4?closed=1)
+* [`0.2.x` Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/2?closed=1): encouraged to use Eleventy `0.11.1` or newer (for incremental Vue component builds)
+* `0.1.x`: requires Eleventy `0.11.0` or newer
 <!--
 * `0.0.x` requires Eleventy 0.11.0 Beta 2 or above (`0.11.0-beta.2`)
 -->
