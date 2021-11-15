@@ -11,6 +11,10 @@ function getEvInstance() {
 	return ev;
 }
 
+function normalizeNewLines(str) {
+  return str.replace(/\r\n/g, "\n");
+}
+
 test("Directories", t => {
 	let ev = getEvInstance();
 	t.is(ev.cacheDir, ".cache");
@@ -30,9 +34,9 @@ test("Relative Directories", t => {
 	t.is(ev.inputDir, path.join(process.cwd(), "src"));
 	t.is(ev.includesDir, path.join(process.cwd(), "components"));
 	t.is(ev.layoutsDir, path.join(process.cwd(), "layouts"));
-	t.deepEqual(Array.from(ev.ignores), [
-		path.join(process.cwd(), "components/**"),
-	]);
+
+	// ignores should not include layouts/includes even though they were passed from eleventy.ignores event
+	t.deepEqual(Array.from(ev.ignores), []);
 });
 
 test("Can use relative path for cache directory", t => {
@@ -50,11 +54,11 @@ test("Can use absolute path for cache directory", t => {
 
 test("getLocalVueFilePath", t => {
 	let ev = getEvInstance();
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue")), "./src/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue")), "./src/components/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue?query=param")), "./src/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), "./src/components/test.vue");
-	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "press", "press-release.vue?rollup-plugin-vue=styles.0.css")), "./src/press/press-release.vue");
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue")), EleventyVue.normalizeOperatingSystemFilePath("./src/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue")), EleventyVue.normalizeOperatingSystemFilePath("./src/components/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "test.vue?query=param")), EleventyVue.normalizeOperatingSystemFilePath("./src/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.includesDir, "test.vue?query=param")), EleventyVue.normalizeOperatingSystemFilePath("./src/components/test.vue"));
+	t.is(ev.getLocalVueFilePath(path.join(ev.inputDir, "press", "press-release.vue?rollup-plugin-vue=styles.0.css")), EleventyVue.normalizeOperatingSystemFilePath("./src/press/press-release.vue"));
 });
 
 test("Vue SFC Render", async t => {
@@ -68,15 +72,14 @@ test("Vue SFC Render", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
 	let component = ev.getComponent("./test/stubs-a/data.vue");
-
 	t.is(await ev.renderComponent(component, {
 		page: {
 			url: "/some-url/"
 		}
-	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p> <div id="child"></div></div>`);
+	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"></div></div>`);
 });
 
 test("Vue SFC Render (one input file)", async t => {
@@ -85,13 +88,14 @@ test("Vue SFC Render (one input file)", async t => {
 	ev.setInputDir("test/stubs-b");
 	ev.setIncludesDir("_includes");
 
-	let inputFile = path.join(process.cwd(), "test/stubs-b/data.vue");
+	let filepath = EleventyVue.normalizeOperatingSystemFilePath("./test/stubs-b/data.vue");
+	let inputFile = path.join(process.cwd(), filepath);
 	let files = [inputFile];
 	let bundle = await ev.getBundle(files);
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
 	let component = ev.getComponent("./test/stubs-b/data.vue");
 
@@ -99,7 +103,7 @@ test("Vue SFC Render (one input file)", async t => {
 		page: {
 			url: "/some-url/"
 		}
-	}), `<div data-server-rendered="true"><p>/some-url/</p> <p>HELLO</p> <div id="child"></div></div>`);
+	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"></div></div>`);
 });
 
 test("Vue SFC CSS", async t => {
@@ -116,28 +120,28 @@ test("Vue SFC CSS", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
-	t.is(ev.getCSSForComponent("./test/stubs-c/data.vue"), `body {
+	t.is(normalizeNewLines(ev.getCSSForComponent("./test/stubs-c/data.vue")), `body {
 	background-color: blue;
 }
 body {
 	background-color: pink;
 }`);
 
-	t.is(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue"), `#child { color: green;
+	t.is(normalizeNewLines(ev.getCSSForComponent("./test/stubs-c/_includes/child.vue")), `#child { color: green;
 }`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-c/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* test/stubs-c/_includes/grandchild.js Component */
+	t.is(normalizeNewLines(cssMgr.getCodeForUrl("/data/")), `/* _includes/grandchild.js Component */
 #grandchild { color: yellow;
 }
-/* test/stubs-c/_includes/child.js Component */
+/* _includes/child.js Component */
 #child { color: green;
 }
-/* test/stubs-c/data.js Component */
+/* data.js Component */
 body {
 	background-color: blue;
 }
@@ -162,28 +166,28 @@ test("Vue SFC CSS (one input file)", async t => {
 	let output = await ev.write(bundle);
 
 	ev.createVueComponents(output);
-	t.is(output.length, 7);
+	t.is(output.length, 9);
 
-	t.is(ev.getCSSForComponent("./test/stubs-d/data.vue"), `body {
+	t.is(normalizeNewLines(ev.getCSSForComponent("./test/stubs-d/data.vue")), `body {
 	background-color: blue;
 }
 body {
 	background-color: pink;
 }`);
 
-	t.is(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue"), `#child { color: green;
+	t.is(normalizeNewLines(ev.getCSSForComponent("./test/stubs-d/_includes/child.vue")), `#child { color: green;
 }`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-d/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* test/stubs-d/_includes/grandchild.js Component */
+	t.is(normalizeNewLines(cssMgr.getCodeForUrl("/data/")), `/* _includes/grandchild.js Component */
 #grandchild { color: yellow;
 }
-/* test/stubs-d/_includes/child.js Component */
+/* _includes/child.js Component */
 #child { color: green;
 }
-/* test/stubs-d/data.js Component */
+/* data.js Component */
 body {
 	background-color: blue;
 }
@@ -207,14 +211,14 @@ test("Vue SFC CSS (one component, no children) Issue #10", async t => {
 
 	ev.createVueComponents(output);
 
-	t.is(ev.getCSSForComponent("./test/stubs-e/data.vue"), `body {
+	t.is(normalizeNewLines(ev.getCSSForComponent("./test/stubs-e/data.vue")), `body {
 	background-color: blue;
 }`);
 
 	let componentName = ev.getJavaScriptComponentFile("./test/stubs-e/data.vue");
 	cssMgr.addComponentForUrl(componentName, "/data/");
 
-	t.is(cssMgr.getCodeForUrl("/data/"), `/* test/stubs-e/data.js Component */
+	t.is(normalizeNewLines(cssMgr.getCodeForUrl("/data/")), `/* data.js Component */
 body {
 	background-color: blue;
 }`);
@@ -268,10 +272,62 @@ test("Vue SFC Data Leak", async t => {
 		]
 	};
 
-	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
-	t.is(component.mixins.length, 1);
-	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
-	t.is(component.mixins.length, 1);
-	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
-	t.is(component.mixins.length, 1);
+	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+	t.is(await ev.renderComponent(component, data), `<div>[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
+});
+
+test("Vue SFC CSS postcss Plugin", async t => {
+	let ev = new EleventyVue();
+	ev.setCacheDir(".cache/vue-test-postcss");
+	ev.setInputDir("test/stubs-postcss");
+	ev.setIncludesDir("_includes");
+
+	ev.setRollupOptions({
+		external: ["testtesttest"]
+	});
+
+	ev.setRollupPluginVueOptions({
+		postcssPlugins: [
+			require("postcss-nested")
+		]
+	});
+
+	let rollupOptions = ev.getMergedRollupOptions();
+	t.deepEqual(rollupOptions.external, [
+		"vue",
+		"vue/server-renderer",
+		"@vue/server-renderer",
+		"testtesttest"
+	]);
+	t.is(rollupOptions.plugins.length, 2);
+
+	let cssMgr = new InlineCodeManager();
+	ev.setCssManager(cssMgr);
+
+	let files = await ev.findFiles();
+	let bundle = await ev.getBundle(files);
+	let output = await ev.write(bundle);
+
+	ev.createVueComponents(output);
+	t.is(output.length, 3);
+
+	t.is(normalizeNewLines(ev.getCSSForComponent("./test/stubs-postcss/data.vue")), `body {
+	background-color: blue;
+}
+body {
+		color: black;
+}`);
+
+	let componentName = ev.getJavaScriptComponentFile("./test/stubs-postcss/data.vue");
+	cssMgr.addComponentForUrl(componentName, "/data/");
+
+	t.is(normalizeNewLines(cssMgr.getCodeForUrl("/data/")), `/* data.js Component */
+body {
+	background-color: blue;
+}
+body {
+		color: black;
+}`);
+	
 });

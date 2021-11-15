@@ -1,14 +1,15 @@
 {
   "name": "@11ty/eleventy-plugin-vue",
-  "version": "0.5.0",
-  "description": "Use Vue.js single file components in Eleventy.",
+  "version": "1.0.0-canary.8",
+  "description": "Use Vue 3 Single File Components (SFC) in Eleventy.",
   "publishConfig": {
     "access": "public"
   },
   "main": ".eleventy.js",
   "scripts": {
     "test": "ava",
-    "sample": "ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy --input=test/sample"
+    "testci": "ava --verbose --serial",
+    "sample": "npx @11ty/eleventy --input=test/sample"
   },
   "repository": {
     "type": "git",
@@ -33,7 +34,7 @@
   },
   "homepage": "https://github.com/11ty/eleventy-plugin-vue#readme",
   "11ty": {
-    "compatibility": ">=0.11 || >=1.0.0-canary"
+    "compatibility": ">=1.0.0-canary.40 || >=1.0.0-beta.1"
   },
   "ava": {
     "failFast": false,
@@ -45,18 +46,18 @@
     ]
   },
   "dependencies": {
-    "@11ty/eleventy-assets": "^1.0.5",
-    "debug": "^4.3.1",
-    "fast-glob": "^3.2.4",
+    "@11ty/eleventy-assets": "^1.0.6",
+    "debug": "^4.3.2",
+    "fast-glob": "^3.2.7",
     "lodash.merge": "^4.6.2",
-    "rollup": "^2.32.1",
+    "rollup": "^2.56.2",
     "rollup-plugin-css-only": "^3.1.0",
-    "rollup-plugin-vue": "^5.1.9",
-    "vue": "^2.6.12",
-    "vue-server-renderer": "^2.6.12",
-    "vue-template-compiler": "^2.6.12"
+    "rollup-plugin-vue": "^6.0.0",
+    "vue": "^3.2.1",
+    "@vue/server-renderer": "^3.2.1"
   },
   "devDependencies": {
-    "ava": "^3.13.0"
+    "ava": "^3.15.0",
+    "postcss-nested": "^5.0.6"
   }
 }

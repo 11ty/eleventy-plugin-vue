@@ -1,6 +1,6 @@
-# eleventy-plugin-vue
+# eleventy-plugin-vue for Vue 3
 
-Zero bundle size server-rendered components for Vue.js.
+Adds Vue Single File Component (SFC) support to Eleventy. Eleventy processes `.vue` SFC files as Eleventy templates and outputs zero-bundle size server rendered components.
 
 Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and Vue, a match made to power Netlify.com](https://www.netlify.com/blog/2020/09/18/eleventy-and-vue-a-match-made-to-power-netlify.com/)
 
@@ -10,40 +10,34 @@ Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and
 npm install @11ty/eleventy-plugin-vue
 ```
 
+* `1.x` requires to use Eleventy `1.0.0` or newer
 * `0.2.x` is encouraged to use Eleventy `0.11.1` or newer (for incremental Vue component builds)
 * `0.1.x` requires Eleventy `0.11.0` or newer
+<!--
 * `0.0.x` requires Eleventy 0.11.0 Beta 2 or above (`0.11.0-beta.2`)
-
-* Requires experimental features in Eleventy, specifically: [Custom File Extension Handlers feature from Eleventy](https://github.com/11ty/eleventy/issues/117). Opt in to experimental features on Eleventy by running `ELEVENTY_EXPERIMENTAL=true npx @11ty/eleventy`.
+-->
 
 ### Changelog
 
+* `1.0.0` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/6?closed=1)) Works with Vue 3. Adds Windows support.
 * `0.3.0` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/3?closed=1)) More consistent incremental builds. Performance improvements.
 * `0.2.1` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/2?closed=1)) adds incremental builds for Eleventy Vue components to avoid unnecessary repeat work. Fixes bug with `permalink` strings returned from Vue Single File Component data.
 * `0.1.x` converted to use a Single File Components for everything (templates, components, etc), instead of `0.0.x`’s string templates with front matter.
 
 ## Features
 
-* Builds `*.vue`’s Single File Components, both in the input directory and in Eleventy’s includes directory. `.vue` files in the includes directory are available for import but only those outside of the includes directory result in output files.
+* Builds `*.vue`’s Single File Components, both in the input directory and in Eleventy’s includes directory. `.vue` files in the includes directory are available for import. Same as any Eleventy template syntax, includes do not write files to your output directory.
 * Works with Vue’s Single File Components, including with `scoped` CSS.
-* Data from single file components feeds into the data cascade (similar to front matter)
+* Data from SFC files feeds into the data cascade (similar to front matter)
 * All JavaScript Template Functions (see https://www.11ty.dev/docs/languages/javascript/#javascript-template-functions), Universal Filters, Universal Shortcodes, Universal Paired Shortcodes are available as Vue `methods` (global functions to use in templates and child components). 
   * For example, you can  use the [`url` Universal Filter](https://www.11ty.dev/docs/filters/url/) like `url("/my-url/")` in your Vue templates.
 * `page` Eleventy supplied data is also available globally in all components.
 
 ### Not Yet Available
 
-* Traditional Vue.js “Page templates” (think `<!--vue-ssr-outlet-->`) as layouts.
-  * Using `.vue` templates as Eleventy layouts is not yet supported. Subscribe to this issue at [#26](https://github.com/11ty/eleventy-plugin-vue/issues/26).
-* Does not yet embed any client-side JavaScript from inside single file components into the output for use on the client. Any JavaScript embedded there is used only for rendering templates in the build and does not show up in the output.
-  * Note that if this is added in the future, it will likely be an opt-in feature.
+* Using `.vue` templates as Eleventy layouts is not yet supported. Subscribe to this issue at [#26](https://github.com/11ty/eleventy-plugin-vue/issues/26).
+* Does not yet embed any client-side JavaScript from inside single file components into the output for use on the client.
 * `lang` on `<template>`, `<style>`, or `<script>` is not yet supported.
-* Windows support
-
-### Warnings
-
-* Adding a `<!doctype html>` to a Vue template is not supported by Vue. For this reason it is recommended to use a different template syntax for your layout (until Vue.js Page Templates support is added per the note above).
-
 
 ## Usage
 
@@ -83,7 +77,13 @@ module.exports = function(eleventyConfig) {
           require("postcss-nested")
         ]
       }
-    }
+    },
+
+    // Passed to rollup.rollup
+    rollupOptions: {
+      // Declare your own external dependencies
+      external: []
+    },
   });
 };
 ```
@@ -113,16 +113,11 @@ module.exports = function(eleventyConfig) {
 ```
 
 
-## Relevant Links
+<!-- ## Relevant Links
 
 * https://ssr.vuejs.org/
 * https://vuejs.org/v2/guide/single-file-components.html
 * https://vue-loader.vuejs.org/guide/scoped-css.html
 * https://rollup-plugin-vue.vuejs.org/
-* https://rollupjs.org/guide/en/
+* https://rollupjs.org/guide/en/ -->
 <!-- https://github.com/tj/consolidate.js/ -->
-
-## TODO
-
-* Custom Directives?
-* How to render Vue templates inside of other template files, including Markdown?

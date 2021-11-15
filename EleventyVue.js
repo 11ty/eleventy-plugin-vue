@@ -8,28 +8,27 @@ const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
 const rollupPluginCssOnly = require("rollup-plugin-css-only");
 
-const Vue = require("vue");
-const vueServerRenderer = require("vue-server-renderer");
-const renderer = vueServerRenderer.createRenderer();
+const { createSSRApp } = require("vue");
+const { renderToString } = require("@vue/server-renderer");
 
 const debug = require("debug")("EleventyVue");
 const debugDev = require("debug")("Dev:EleventyVue");
 
 function addLeadingDotSlash(pathArg) {
   if (pathArg === "." || pathArg === "..") {
-    return pathArg + "/";
+    return pathArg + path.sep;
   }
 
   if (
     path.isAbsolute(pathArg) ||
-    pathArg.startsWith("./") ||
-    pathArg.startsWith("../")
+    pathArg.startsWith("." + path.sep) ||
+    pathArg.startsWith(".." +  + path.sep)
   ) {
     return pathArg;
   }
 
-  return "./" + pathArg;
-};
+  return "." + path.sep + pathArg;
+}
 
 class EleventyVue {
   constructor(cacheDirectory) {
@@ -42,7 +41,7 @@ class EleventyVue {
 
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
-      exports: "default",
+      exports: "auto",
       preserveModules: true, // keeps separate files on the file system
       // dir: this.cacheDir // set via setCacheDir
       entryFileNames: (chunkInfo) => {
@@ -82,6 +81,8 @@ class EleventyVue {
 
   // Deprecated, use resetCSSFor above
   resetFor(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     debug("Clearing CSS styleNodes in Vue for %o", localVuePath);
     this.vueFileToCSSMap[localVuePath] = [];
   }
@@ -90,16 +91,61 @@ class EleventyVue {
     this.cssManager = cssManager;
   }
 
+  setRollupOptions(options) {
+    this.rollupOptions = options;
+  }
+
+  getMergedRollupOptions(input, isSubsetOfFiles) {
+    let options = {
+      input,
+      onwarn (warning, warn) {
+        if(warning.code === "UNUSED_EXTERNAL_IMPORT") {
+          debug("Unused external import: %O", warning);
+        } else {
+          warn(warning);
+        }
+      },
+      external: [
+        "vue",
+        "vue/server-renderer",
+        "@vue/server-renderer",
+      ],
+      plugins: [
+        rollupPluginVue(this.getRollupPluginVueOptions()),
+        rollupPluginCssOnly({
+          output: async (styles, styleNodes) => {
+            this.resetCSSFor(styleNodes);
+            this.addRawCSS(styleNodes);
+
+            if(!this.readOnly && !isSubsetOfFiles) {
+              await this.writeRollupOutputCacheCss(styleNodes);
+            }
+          }
+        }),
+      ]
+    };
+
+    for(let key in this.rollupOptions) {
+      if(key === "external" || key === "plugins") {
+        // merge the Array
+        options[key] = options[key].concat(this.rollupOptions[key]);
+      } else {
+        options[key] = this.rollupOptions[key];
+      }
+    }
+
+    return options;
+  }
+
   setRollupPluginVueOptions(rollupPluginVueOptions) {
     this.rollupPluginVueOptions = rollupPluginVueOptions;
   }
 
   getRollupPluginVueOptions() {
     return lodashMerge({
-      css: false,
-      template: {
-        optimizeSSR: true
-      }
+      target: "node",
+      exposeFilename: true,
+      // preprocessStyles: false, // false is default
       // compilerOptions: {} // https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
     }, this.rollupPluginVueOptions);
   }
@@ -107,15 +153,20 @@ class EleventyVue {
   resetIgnores(extraIgnores = []) {
     this.ignores = new Set();
 
-    let relativeIncludesDir = this.rawIncludesDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawIncludesDir)) : undefined;
-    let relativeLayoutsDir = this.rawLayoutsDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawLayoutsDir)) : undefined;
+    // These need to be forced to forward slashes for comparison
+    let relativeIncludesDir = this.rawIncludesDir ? EleventyVue.forceForwardSlashOnFilePath(addLeadingDotSlash(path.join(this.relativeInputDir, this.rawIncludesDir))) : undefined;
+    let relativeLayoutsDir = this.rawLayoutsDir ? EleventyVue.forceForwardSlashOnFilePath(addLeadingDotSlash(path.join(this.relativeInputDir, this.rawLayoutsDir))) : undefined;
 
+    // don’t add ignores that match includes or layouts dirs
     for(let ignore of extraIgnores) {
       if(relativeIncludesDir && ignore.startsWith(relativeIncludesDir)) {
         // do nothing
+        debug( "Skipping ignore from eleventy.ignores event: %o, matched includes dir", ignore);
       } else if(relativeLayoutsDir && ignore.startsWith(relativeLayoutsDir)) {
         // do nothing
+        debug( "Skipping ignore from eleventy.ignores event: %o, matched layouts dir", ignore);
       } else {
+        debug( "Adding ignore from eleventy.ignores event: %o %O %O", ignore, { relativeIncludesDir }, { relativeLayoutsDir } );
         this.ignores.add(ignore);
       }
     }
@@ -126,37 +177,29 @@ class EleventyVue {
     this.inputDir = path.join(this.workingDir, inputDir);
   }
 
-  setIncludesDir(includesDir, useInFileSearch = false) {
+  setIncludesDir(includesDir) {
     if(includesDir) {
       // Was: path.join(this.workingDir, includesDir);
       // Which seems wrong? per https://www.11ty.dev/docs/config/#directory-for-includes
       this.rawIncludesDir = includesDir;
       this.includesDir = path.join(this.inputDir, includesDir);
-
-      if(!useInFileSearch) {
-        this.ignores.add(path.join(this.includesDir, "**"));
-      }
     }
   }
 
-  setLayoutsDir(layoutsDir, useInFileSearch = true) {
+  setLayoutsDir(layoutsDir) {
     if(layoutsDir) {
       this.rawLayoutsDir = layoutsDir;
       this.layoutsDir = path.join(this.inputDir, layoutsDir);
-
-      if(!useInFileSearch) {
-        this.ignores.add(path.join(this.layoutsDir, "**"));
-      }
     }
   }
 
   // adds leading ./
   _createRequirePath(...paths) {
     let joined = path.join(...paths);
-    if(joined.startsWith("/")) {
+    if(joined.startsWith(path.sep)) {
       return joined;
     }
-    return `./${joined}`;
+    return `.${path.sep}${joined}`;
   }
 
   setCacheDir(cacheDir) {
@@ -178,6 +221,7 @@ class EleventyVue {
     return filepath.startsWith(this.includesDir);
   }
 
+  // TODO pass in a filename and only clear the appropriate files
   clearRequireCache() {
     let fullCacheDir = this.getFullCacheDir();
     let deleteCount = 0;
@@ -196,22 +240,32 @@ class EleventyVue {
       addLeadingDotSlash(path.join(this.relativeInputDir, glob))
     ];
 
-    if(this.includesDir && !this.includesDir.startsWith(this.inputDir)) {
-      globPaths.push(
-        addLeadingDotSlash(path.join(this.includesDir, glob))
-      );
+    if(this.includesDir) {
+      if(!this.includesDir.startsWith(this.inputDir)) {
+        globPaths.push(
+          addLeadingDotSlash(path.join(this.relativeIncludesDir, glob))
+        );
+      }
     }
 
-    if(this.layoutsDir && !this.layoutsDir.startsWith(this.inputDir)) {
-      globPaths.push(
-        addLeadingDotSlash(path.join(this.layoutsDir, glob))
-      );
+    if(this.layoutsDir) {
+      if(!this.layoutsDir.startsWith(this.inputDir)) {
+        globPaths.push(
+          addLeadingDotSlash(path.join(this.relativeLayoutsDir, glob))
+        );
+      }
     }
 
+    // ignores should not include layouts or includes directories, filtered out above.
+    let ignores = Array.from(this.ignores).map(ignore => EleventyVue.forceForwardSlashOnFilePath(ignore));
+    globPaths = globPaths.map(path => EleventyVue.forceForwardSlashOnFilePath(path));
+    debug("Looking for %O and ignoring %O", globPaths, ignores);
+
+    // MUST use forward slashes here (even in Windows), per fast-glob requirements
     return fastglob(globPaths, {
       caseSensitiveMatch: false,
       // dot: true,
-      ignore: Array.from(this.ignores),
+      ignore: ignores,
     });
   }
 
@@ -229,22 +283,9 @@ class EleventyVue {
       });
     }
 
-    let bundle = await rollup.rollup({
-      input: input,
-      plugins: [
-        rollupPluginCssOnly({
-          output: async (styles, styleNodes) => {
-            this.resetCSSFor(styleNodes);
-            this.addRawCSS(styleNodes);
-
-            if(!this.readOnly && !isSubsetOfFiles) {
-              await this.writeRollupOutputCacheCss(styleNodes);
-            }
-          }
-        }),
-        rollupPluginVue(this.getRollupPluginVueOptions())
-      ]
-    });
+    debug("Found these input files: %O", input);
+    let options = this.getMergedRollupOptions(input, isSubsetOfFiles);
+    let bundle = await rollup.rollup(options);
 
     return bundle;
   }
@@ -319,6 +360,8 @@ class EleventyVue {
     if(this.cssManager) {
       // Re-insert CSS code in the CSS manager
       for(let localVuePath in vueToJs) {
+        localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
         let css = this.getCSSForComponent(localVuePath);
         if(css) {
           let jsFilename = vueToJs[localVuePath];
@@ -338,17 +381,12 @@ class EleventyVue {
     this.componentsWriteCount = 0;
     for(let entry of output) {
       let fullVuePath = entry.facadeModuleId;
-      // if(entry.fileName.endsWith("rollup-plugin-vue=script.js") ||
-      if(fullVuePath.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.mjs"))) {
-        continue;
-      }
-
       let inputPath = this.getLocalVueFilePath(fullVuePath);
       let jsFilename = entry.fileName;
       let intermediateComponent = false;
       let css;
 
-      if(fullVuePath.endsWith("?rollup-plugin-vue=script.js")) {
+      if(fullVuePath.endsWith("&lang.js")) {
         intermediateComponent = true;
         css = false;
       } else {
@@ -370,6 +408,7 @@ class EleventyVue {
         // debugDev("modules: %O", Object.keys(entry.modules));
 
         for(let importFilename of importList) {
+          // TODO is this necessary?
           if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
             continue;
           }
@@ -391,7 +430,8 @@ class EleventyVue {
       filePath = `.${fullPath.substr(this.workingDir.length)}`;
     }
     let extension = ".vue";
-    return filePath.substr(0, filePath.lastIndexOf(extension) + extension.length);
+    let localVuePath = filePath.substr(0, filePath.lastIndexOf(extension) + extension.length);
+    return EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
   }
 
   /* CSS */
@@ -419,6 +459,8 @@ class EleventyVue {
   }
 
   addCSSViaLocalPath(localVuePath, cssText) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     if(!this.vueFileToCSSMap[localVuePath]) {
       this.vueFileToCSSMap[localVuePath] = [];
     }
@@ -431,6 +473,8 @@ class EleventyVue {
   }
 
   getCSSForComponent(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     let css = (this.vueFileToCSSMap[localVuePath] || []).join("\n");
     debugDev("Getting CSS for component: %o, length: %o", localVuePath, css.length);
     return css;
@@ -438,22 +482,34 @@ class EleventyVue {
 
   /* Map from vue files to compiled JavaScript files */
   addVueToJavaScriptMapping(localVuePath, jsFilename) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     this.vueFileToJavaScriptFilenameMap[localVuePath] = jsFilename;
   }
 
   getJavaScriptComponentFile(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     return this.vueFileToJavaScriptFilenameMap[localVuePath];
   }
 
+  // localVuePath is already normalized to local OS directory separator at this point
   getFullJavaScriptComponentFilePath(localVuePath) {
+    localVuePath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
+    if(!jsFilename) {
+      throw new Error("Could not find compiled JavaScript file for Vue component: " + localVuePath);
+    }
+
     debugDev("Map vue path to JS component file: %o to %o", localVuePath, jsFilename);
     let fullComponentPath = path.join(this.getFullCacheDir(), jsFilename);
     return fullComponentPath;
   }
 
   getComponent(localVuePath) {
-    let fullComponentPath = this.getFullJavaScriptComponentFilePath(localVuePath);
+    let filepath = EleventyVue.normalizeOperatingSystemFilePath(localVuePath);
+    let fullComponentPath = this.getFullJavaScriptComponentFilePath(filepath);
     let component = require(fullComponentPath);
     return component;
   }
@@ -464,49 +520,41 @@ class EleventyVue {
     }, data, mixin);
   }
 
-  async renderComponent(vueComponent, data, mixin = {}) {
-    Vue.mixin(mixin);
-    // We don’t use a local mixin for this because it’s global to all components
-    // We don’t use a global mixin for this because modifies the Vue object and
-    // leaks into other templates (reports wrong page.url!)
-    if(!("page" in Vue.prototype)) {
-      Object.defineProperty(Vue.prototype, "page", {
-        get () {
-          // https://vuejs.org/v2/api/#vm-root
-          return this.$root.$options.data().page;
-        }
-      });
-    }
+  async renderComponent(vueComponent, pageData, mixin = {}) {
+    // console.log( pageData );
+    const app = createSSRApp(vueComponent);
+    // Allow `page` to be accessed inside any Vue component
+    // https://v3.vuejs.org/api/application-config.html#globalproperties
+    app.config.globalProperties.page = pageData.page;
 
-    if(!vueComponent.mixins) {
-      vueComponent.mixins = [];
-    }
-    
+    // TODO hook for app modifications
+    // app.config.warnHandler = function(msg, vm, trace) {
+    //   console.log( "[Vue 11ty] Warning", msg, vm, trace );
+    // };
+    // app.config.errorHandler = function(msg, vm, info) {
+    //   console.log( "[Vue 11ty] Error", msg, vm, info );
+    // };
+
+    app.mixin(mixin);
+
     // Full data cascade is available to the root template component
-    let dataMixin = {
-      data: function eleventyFullDataCascade() {
-        return data;
+    app.mixin({
+      data: function() {
+        return pageData;
       },
-    };
-    
-    // remove any existing eleventyFullDataCascade mixins
-    vueComponent.mixins = vueComponent.mixins.filter(entry => {
-      if(entry &&
-        entry.data &&
-        typeof entry.data === "function" &&
-        entry.data.toString() === dataMixin.data.toString()) {
-        return false;
-      }
-      return true;
     });
-    
-    vueComponent.mixins.push(dataMixin);
-
-    const app = new Vue(vueComponent);
 
     // returns a promise
-    return renderer.renderToString(app);
+    return renderToString(app);
   }
+}
+
+EleventyVue.normalizeOperatingSystemFilePath = function(filePath, sep = "/") {
+  return filePath.split(sep).join(path.sep);
+}
+
+EleventyVue.forceForwardSlashOnFilePath = function(filePath) {
+  return filePath.split(path.sep).join("/");
 }
 
 module.exports = EleventyVue;

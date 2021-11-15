@@ -10,18 +10,16 @@ const pkg = require("./package.json");
 const globalOptions = {
   input: [], // point to a specific list of Vue files (defaults to **/*.vue)
 
-  // Because Vue components live in the _includes directory alongside Eleventy layout files, it’s
-  // faster to use a _layouts dir instead of _includes dir for Eleventy layouts.
-  // Enable this feature to use Eleventy layouts inside of _includes too (it’s slower)
-  searchIncludesDirectoryForLayouts: false,
-  searchLayoutsDirectoryForLayouts: false,
-
   readOnly: false,
 
   cacheDirectory: ".cache/vue/",
 
+  // See https://www.rollupjs.org/guide/en/#big-list-of-options
+  rollupOptions: {},
+
   // See https://rollup-plugin-vue.vuejs.org/options.html
   rollupPluginVueOptions: {},
+
   assets: {
     css: null
   } // optional `eleventy-assets` instances
@@ -62,11 +60,19 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     eleventyIgnores = ignores;
   });
 
-  // TODO check if verbose mode for console.log
+  // Default output
+  let isVerboseMode = true;
+  eleventyConfig.on("eleventy.config", config => {
+    // Available in 1.0.0-beta.6+
+    if(config.verbose !== undefined) {
+      isVerboseMode = config.verbose;
+    }
+  });
+
   eleventyConfig.on("afterBuild", () => {
     let count = eleventyVue.componentsWriteCount;
-    if(count > 0) {
-      console.log( `Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version})` );
+    if(isVerboseMode && count > 0) {
+      console.log( `Built ${count} component${count !== 1 ? "s" : ""} (eleventy-plugin-vue v${pkg.version}${version ? ` with Vue ${version}` : ""})` );
     }
   });
 
@@ -101,10 +107,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     },
     init: async function() {
       eleventyVue.setInputDir(this.config.inputDir);
-      eleventyVue.setIncludesDir(this.config.dir.includes, !options.searchIncludesDirectoryForLayouts);
-      eleventyVue.setLayoutsDir(this.config.dir.layouts, !options.searchLayoutsDirectoryForLayouts);
+      eleventyVue.setIncludesDir(this.config.dir.includes);
+      eleventyVue.setLayoutsDir(this.config.dir.layouts);
       eleventyVue.resetIgnores(eleventyIgnores);
 
+      eleventyVue.setRollupOptions(options.rollupOptions);
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
 
       if(skipVueBuild) {
@@ -133,10 +140,17 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
           return;
         }
 
-        let bundle = await eleventyVue.getBundle(files, isSubset);
-        let output = await eleventyVue.write(bundle);
-
-        eleventyVue.createVueComponents(output);
+        try {
+          let bundle = await eleventyVue.getBundle(files, isSubset);
+          let output = await eleventyVue.write(bundle);
+  
+          eleventyVue.createVueComponents(output);
+        } catch(e) {
+          if(e.loc) {
+            e.message = `Error in Vue file ${e.loc.file} on Line ${e.loc.line} Column ${e.loc.column}: ${e.message}`
+          }
+          throw e;
+        }
 
         if(!options.readOnly && !isSubset) { // implied eleventyVue.hasRollupOutputCache() was false
           await eleventyVue.writeRollupOutputCache();
