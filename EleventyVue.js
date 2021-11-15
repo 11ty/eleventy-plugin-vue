@@ -156,12 +156,16 @@ class EleventyVue {
     let relativeIncludesDir = this.rawIncludesDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawIncludesDir)) : undefined;
     let relativeLayoutsDir = this.rawLayoutsDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawLayoutsDir)) : undefined;
 
+    // don’t add ignores that match includes or layouts dirs
     for(let ignore of extraIgnores) {
       if(relativeIncludesDir && ignore.startsWith(relativeIncludesDir)) {
         // do nothing
+        debug( "Skipping ignore from eleventy.ignores event: %o, matched includes dir", ignore);
       } else if(relativeLayoutsDir && ignore.startsWith(relativeLayoutsDir)) {
         // do nothing
+        debug( "Skipping ignore from eleventy.ignores event: %o, matched layouts dir", ignore);
       } else {
+        debug( "Adding ignore from eleventy.ignores event: %o %O %O", ignore, { relativeIncludesDir }, { relativeLayoutsDir } );
         this.ignores.add(ignore);
       }
     }
@@ -172,27 +176,19 @@ class EleventyVue {
     this.inputDir = path.join(this.workingDir, inputDir);
   }
 
-  setIncludesDir(includesDir, useInFileSearch = false) {
+  setIncludesDir(includesDir) {
     if(includesDir) {
       // Was: path.join(this.workingDir, includesDir);
       // Which seems wrong? per https://www.11ty.dev/docs/config/#directory-for-includes
       this.rawIncludesDir = includesDir;
       this.includesDir = path.join(this.inputDir, includesDir);
-
-      if(!useInFileSearch) {
-        this.ignores.add(path.join(this.includesDir, "**"));
-      }
     }
   }
 
-  setLayoutsDir(layoutsDir, useInFileSearch = true) {
+  setLayoutsDir(layoutsDir) {
     if(layoutsDir) {
       this.rawLayoutsDir = layoutsDir;
       this.layoutsDir = path.join(this.inputDir, layoutsDir);
-
-      if(!useInFileSearch) {
-        this.ignores.add(path.join(this.layoutsDir, "**"));
-      }
     }
   }
 
@@ -243,18 +239,23 @@ class EleventyVue {
       addLeadingDotSlash(path.join(this.relativeInputDir, glob))
     ];
 
-    if(this.includesDir && !this.includesDir.startsWith(this.inputDir)) {
-      globPaths.push(
-        addLeadingDotSlash(path.join(this.includesDir, glob))
-      );
+    if(this.includesDir) {
+      if(!this.includesDir.startsWith(this.inputDir)) {
+        globPaths.push(
+          addLeadingDotSlash(path.join(this.relativeIncludesDir, glob))
+        );
+      }
     }
 
-    if(this.layoutsDir && !this.layoutsDir.startsWith(this.inputDir)) {
-      globPaths.push(
-        addLeadingDotSlash(path.join(this.layoutsDir, glob))
-      );
+    if(this.layoutsDir) {
+      if(!this.layoutsDir.startsWith(this.inputDir)) {
+        globPaths.push(
+          addLeadingDotSlash(path.join(this.relativeLayoutsDir, glob))
+        );
+      }
     }
 
+    // ignores should not include layouts or includes directories, filtered out above.
     let ignores = Array.from(this.ignores).map(ignore => EleventyVue.forceForwardSlashOnFilePath(ignore));
     globPaths = globPaths.map(path => EleventyVue.forceForwardSlashOnFilePath(path));
     debug("Looking for %O and ignoring %O", globPaths, ignores);

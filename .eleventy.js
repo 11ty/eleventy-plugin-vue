@@ -11,12 +11,6 @@ const {version} = require("vue");
 const globalOptions = {
   input: [], // point to a specific list of Vue files (defaults to **/*.vue)
 
-  // Because Vue components live in the _includes directory alongside Eleventy layout files, it’s
-  // faster to use a _layouts dir instead of _includes dir for Eleventy layouts.
-  // Enable this feature to use Eleventy layouts inside of _includes too (it’s slower)
-  searchIncludesDirectoryForLayouts: false,
-  searchLayoutsDirectoryForLayouts: false,
-
   readOnly: false,
 
   cacheDirectory: ".cache/vue/",
@@ -114,8 +108,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     },
     init: async function() {
       eleventyVue.setInputDir(this.config.inputDir);
-      eleventyVue.setIncludesDir(this.config.dir.includes, !options.searchIncludesDirectoryForLayouts);
-      eleventyVue.setLayoutsDir(this.config.dir.layouts, !options.searchLayoutsDirectoryForLayouts);
+      eleventyVue.setIncludesDir(this.config.dir.includes);
+      eleventyVue.setLayoutsDir(this.config.dir.layouts);
       eleventyVue.resetIgnores(eleventyIgnores);
 
       eleventyVue.setRollupOptions(options.rollupOptions);

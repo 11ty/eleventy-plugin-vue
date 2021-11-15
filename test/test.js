@@ -34,9 +34,9 @@ test("Relative Directories", t => {
 	t.is(ev.inputDir, path.join(process.cwd(), "src"));
 	t.is(ev.includesDir, path.join(process.cwd(), "components"));
 	t.is(ev.layoutsDir, path.join(process.cwd(), "layouts"));
-	t.deepEqual(Array.from(ev.ignores), [
-		path.join(process.cwd(), "components/**"),
-	]);
+
+	// ignores should not include layouts/includes even though they were passed from eleventy.ignores event
+	t.deepEqual(Array.from(ev.ignores), []);
 });
 
 test("Can use relative path for cache directory", t => {
