@@ -85,7 +85,13 @@ module.exports = function(eleventyConfig) {
           require("postcss-nested")
         ]
       }
-    }
+    },
+
+    // Passed to rollup.rollup
+    rollupOptions: {
+      // Declare your own external dependencies
+      external: []
+    },
   });
 };
 ```
