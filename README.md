@@ -112,6 +112,30 @@ module.exports = function(eleventyConfig) {
 };
 ```
 
+#### Advanced: Run async things before component render
+
+_Available with Eleventy 1.0+ and Eleventy Vue Plugin 0.6+_
+
+Use [`serverPrefetch`](https://ssr.vuejs.org/guide/data.html) to tell the component to do a few async things before it renders the component. This plugin also uses the (optional) return object to populate the Data Cascade (in the same way that `data()` does).
+
+Below is an example of a Vue template that uses [the Eleventy Render Plugin](https://11ty.dev/docs/plugins/render/) to render Markdown (either in an external file or a string).
+
+```html
+<template>
+  <header v-html="content"/>
+</template>
+<script>
+export default {
+  async serverPrefetch() {
+    // let content = await this.renderFile("./_includes/blogpost.md", "md");
+    let content = await this.renderTemplate("# Title", "md");
+    return {
+      content
+    };
+  }
+}
+</script>
+```
 
 <!-- ## Relevant Links
 
