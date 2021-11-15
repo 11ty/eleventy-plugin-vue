@@ -10,12 +10,9 @@ Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and
 npm install @11ty/eleventy-plugin-vue
 ```
 
-* [`1.x` Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/6?closed=1): requires Eleventy `1.0.0` or newer
-* [`0.6.x` Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/5?closed=1)
-* …
-* `0.3.x` Milestones: [`0.3.0`](https://github.com/11ty/eleventy-plugin-vue/milestone/3?closed=1) and [`0.3.1`](https://github.com/11ty/eleventy-plugin-vue/milestone/4?closed=1)
-* [`0.2.x` Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/2?closed=1): encouraged to use Eleventy `0.11.1` or newer (for incremental Vue component builds)
-* `0.1.x`: requires Eleventy `0.11.0` or newer
+* `1.x` requires Eleventy `1.0.0` or newer
+* `0.2.x` encouraged to use Eleventy `0.11.1` or newer (for incremental Vue component builds)
+* `0.1.x` requires Eleventy `0.11.0` or newer
 <!--
 * `0.0.x` requires Eleventy 0.11.0 Beta 2 or above (`0.11.0-beta.2`)
 -->
@@ -23,6 +20,8 @@ npm install @11ty/eleventy-plugin-vue
 ### Changelog
 
 * `1.0.0` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/6?closed=1)) Works with Vue 3. Adds Windows support.
+* `0.6.x` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/5?closed=1)
+* `0.3.1` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/4?closed=1))
 * `0.3.0` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/3?closed=1)) More consistent incremental builds. Performance improvements.
 * `0.2.1` ([Milestone](https://github.com/11ty/eleventy-plugin-vue/milestone/2?closed=1)) adds incremental builds for Eleventy Vue components to avoid unnecessary repeat work. Fixes bug with `permalink` strings returned from Vue Single File Component data.
 * `0.1.x` converted to use a Single File Components for everything (templates, components, etc), instead of `0.0.x`’s string templates with front matter.
