@@ -1,6 +1,6 @@
 {
   "name": "@11ty/eleventy-plugin-vue",
-  "version": "1.0.0-canary.7",
+  "version": "1.0.0-canary.8",
   "description": "Use Vue 3 Single File Components (SFC) in Eleventy.",
   "publishConfig": {
     "access": "public"
