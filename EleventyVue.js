@@ -480,6 +480,8 @@ class EleventyVue {
 
     if(!vueComponent.mixins) {
       vueComponent.mixins = [];
+    } else {
+      vueComponent.mixins = vueComponent.mixins.filter((item) => !item.data)
     }
     
     // Full data cascade is available to the root template component
