@@ -1,4 +1,4 @@
-# eleventy-plugin-vue
+# eleventy-plugin-vue for Vue 2
 
 Zero bundle size server-rendered components for Vue.js.
 
