@@ -35,7 +35,7 @@ npm install @11ty/eleventy-plugin-vue
 
 ### Not Yet Available
 
-* Using `.vue` templates as Eleventy layouts is not yet supported. Subscribe to this issue at [#26](https://github.com/11ty/eleventy-plugin-vue/issues/26).
+* Using `.vue` templates as Eleventy layouts is not yet supported. Subscribe to this issue at [#5](https://github.com/11ty/eleventy-plugin-vue/issues/5).
 * Does not yet embed any client-side JavaScript from inside single file components into the output for use on the client.
 * `lang` on `<template>`, `<style>`, or `<script>` is not yet supported.
 
