@@ -153,8 +153,9 @@ class EleventyVue {
   resetIgnores(extraIgnores = []) {
     this.ignores = new Set();
 
-    let relativeIncludesDir = this.rawIncludesDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawIncludesDir)) : undefined;
-    let relativeLayoutsDir = this.rawLayoutsDir ? addLeadingDotSlash(path.join(this.relativeInputDir, this.rawLayoutsDir)) : undefined;
+    // These need to be forced to forward slashes for comparison
+    let relativeIncludesDir = this.rawIncludesDir ? EleventyVue.forceForwardSlashOnFilePath(addLeadingDotSlash(path.join(this.relativeInputDir, this.rawIncludesDir))) : undefined;
+    let relativeLayoutsDir = this.rawLayoutsDir ? EleventyVue.forceForwardSlashOnFilePath(addLeadingDotSlash(path.join(this.relativeInputDir, this.rawLayoutsDir))) : undefined;
 
     // don’t add ignores that match includes or layouts dirs
     for(let ignore of extraIgnores) {
