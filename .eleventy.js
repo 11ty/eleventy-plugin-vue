@@ -94,7 +94,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     read: false, // We use rollup to read the files
     getData: [ // get data from both the data function and serverPrefetch
       "data",
-      "serverPrefetch"
+      // including this by default is bad because a lot of async data fetching happens here!
+      // "serverPrefetch"
     ],
     getInstanceFromInputPath: function(inputPath) {
       return eleventyVue.getComponent(inputPath);

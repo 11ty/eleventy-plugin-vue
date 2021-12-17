@@ -127,10 +127,7 @@ Below is an example of a Vue template that uses [the Eleventy Render Plugin](htt
 export default {
   async serverPrefetch() {
     // let content = await this.renderFile("./_includes/blogpost.md", "md");
-    let content = await this.renderTemplate("# Title", "md");
-    return {
-      content
-    };
+    this.content = await this.renderTemplate("# Title", "md");
   }
 }
 </script>
