@@ -158,6 +158,16 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
         }
       }
     },
+
+    // Caching
+    compileOptions: {
+      cache: true,
+      permalink: false,
+      getCacheKey: function(str, inputPath) {
+        return inputPath;
+      },
+    },
+
     compile: function(str, inputPath) {
       return async (data) => {
         // since `read: false` is set 11ty doesn't read file contents
