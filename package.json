@@ -45,19 +45,19 @@
     ]
   },
   "dependencies": {
-    "@11ty/eleventy-assets": "^1.0.5",
-    "debug": "^4.3.1",
+    "@11ty/eleventy-assets": "^1.0.6",
+    "debug": "^4.3.3",
     "dependency-graph": "^0.11.0",
-    "fast-glob": "^3.2.4",
+    "fast-glob": "^3.2.7",
     "lodash.merge": "^4.6.2",
-    "rollup": "^2.32.1",
+    "rollup": "^2.63.0",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-vue": "^5.1.9",
-    "vue": "^2.6.12",
-    "vue-server-renderer": "^2.6.12",
-    "vue-template-compiler": "^2.6.12"
+    "vue": "^2.6.14",
+    "vue-server-renderer": "^2.6.14",
+    "vue-template-compiler": "^2.6.14"
   },
   "devDependencies": {
-    "ava": "^3.13.0"
+    "ava": "^4.0.0"
   }
 }
