@@ -154,7 +154,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
         if(files && files.length) {
           isSubset = true;
-          console.log( { isSubset }, { files } );
         } else {
           // input passed in via config
           if(options.input && options.input.length) {
