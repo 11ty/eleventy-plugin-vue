@@ -2,6 +2,7 @@ const lodashMerge = require("lodash.merge");
 const debug = require("debug")("EleventyVue");
 
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
+const { DepGraph } = require('dependency-graph');
 
 const EleventyVue = require("./EleventyVue");
 
@@ -43,8 +44,34 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let cssManager = options.assets.css || new InlineCodeManager();
   eleventyVue.setCssManager(cssManager);
 
+  let componentGraph = new DepGraph();
+  eleventyVue.setComponentGraph(componentGraph);
+
   let changedVueFilesOnWatch = [];
   let skipVueBuild = false;
+
+  function isFileRelevantToIncrementalBuild(fullTemplateInputPath, changedFiles = []) {
+    if(changedFiles.length === 0) {
+      return true;
+    }
+
+    let lookingForJsFile = eleventyVue.getRelativeJsPathFromVuePath(fullTemplateInputPath);
+    for(let file of changedFiles) {
+      if(file === fullTemplateInputPath) {
+        return true;
+      }
+
+      if(eleventyVue.isIncludeFile(file)) {
+        let components = eleventyVue.getAllComponentsUsedBy(file);
+        if(components.indexOf(lookingForJsFile) > -1) {
+          debug( "Matched %o to %o, was relevant to %o components" , fullTemplateInputPath, file, components.length );
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
 
   // Only add this filter if you’re not re-using your own asset manager.
   // TODO Add warnings to readme
@@ -62,6 +89,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     eleventyIgnores = ignores;
   });
 
+  eleventyConfig.on("beforeBuild", () => {
+    // TODO delete nodes from this graph that have changed, see `changedVueFilesOnWatch`
+    eleventyVue.setComponentGraph(componentGraph);
+  });
+
   // TODO check if verbose mode for console.log
   eleventyConfig.on("afterBuild", () => {
     let count = eleventyVue.componentsWriteCount;
@@ -71,20 +103,24 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   });
 
   // `beforeWatch` is available on Eleventy 0.11.0 and newer
-  eleventyConfig.on("beforeWatch", (changedFiles) => {
-    let hasChangedFiles = changedFiles && changedFiles.length > 0;
+  eleventyConfig.on("beforeWatch", changedFiles => {
+    if(!Array.isArray(changedFiles)) {
+      changedFiles = [];
+    }
 
     // `changedFiles` array argument is available on Eleventy 0.11.1+
-    changedVueFilesOnWatch = (changedFiles || []).filter(file => file.endsWith(".vue"));
+    changedVueFilesOnWatch = changedFiles.filter(file => file.endsWith(".vue"));
 
     // Only reset what changed! (Partial builds for Vue rollup files)
     if(changedVueFilesOnWatch.length > 0) {
       skipVueBuild = false;
+    } else if(changedFiles.length > 0) { // files changed but not Vue ones
+      skipVueBuild = true;
     } else {
-      if(hasChangedFiles) {
-        skipVueBuild = true;
-      }
+      skipVueBuild = false;
     }
+
+    // TODO make this more granular and only run if the Vue build if !skipVueBuild
     eleventyVue.clearRequireCache();
   });
 
@@ -92,14 +128,13 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
   eleventyConfig.addExtension("vue", {
     read: false, // We use rollup to read the files
-    getData: [ // get data from both the data function and serverPrefetch
-      "data",
-      // including this by default is bad because a lot of async data fetching happens here!
-      // "serverPrefetch"
-    ],
     getInstanceFromInputPath: function(inputPath) {
       return eleventyVue.getComponent(inputPath);
     },
+    getData: [
+      // don’t include serverPrefetch by default—a lot of async data fetching happens here!
+      "data",
+    ],
     init: async function() {
       eleventyVue.setInputDir(this.config.inputDir);
       eleventyVue.setIncludesDir(this.config.dir.includes, !options.searchIncludesDirectoryForLayouts);
@@ -119,6 +154,7 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
         if(files && files.length) {
           isSubset = true;
+          console.log( { isSubset }, { files } );
         } else {
           // input passed in via config
           if(options.input && options.input.length) {
@@ -147,35 +183,42 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
 
     // Caching
     compileOptions: {
-      cache: true,
-      permalink: false,
-      getCacheKey: function(str, inputPath) {
-        return inputPath;
-      },
+      permalink: contents => contents,
+
+      // Skipping function compilation cache (for now) to simplify incremental builds (incremental builds are *worth it*)
+      cache: false,
+    },
+
+    isIncrementalMatch: function(changedFile) {
+      let relevant = isFileRelevantToIncrementalBuild(this.inputPath, [changedFile]);
+      // debug( "isIncrementalMatch", this.inputPath, changedFile, { relevant } );
+      return relevant;
     },
 
     compile: function(str, inputPath) {
-      return async (data) => {
-        // since `read: false` is set 11ty doesn't read file contents
-        // so if str has a value, it's a permalink (which can be a string or a function)
-        // currently Vue template syntax in permalink string is not supported.
-        let vueMixin = {
-          methods: this.config.javascriptFunctions,
-        };
+      // since `read: false` is set 11ty doesn't read file contents
+      let vueMixin = {
+        methods: this.config.javascriptFunctions,
+      };
 
-        if (str) {
-          if(typeof str === "function") {
-            return str(data);
-          }
+      // Since `read: false`, str should only have a value for permalink compilation
+      if (str) {
+        return (data) => {
           if(typeof str === "string" && str.trim().charAt("0") === "<") {
             return eleventyVue.renderString(str, data, vueMixin);
           }
           return str;
-        }
+        };
+      }
 
-        let vueComponent = eleventyVue.getComponent(inputPath);
-        let componentName = eleventyVue.getJavaScriptComponentFile(inputPath);
+      if(!isFileRelevantToIncrementalBuild(inputPath, changedVueFilesOnWatch)) {
+        return;
+      }
 
+      let vueComponent = eleventyVue.getComponent(inputPath);
+      let componentName = eleventyVue.getJavaScriptComponentFile(inputPath);
+
+      return async (data) => {
         // if user attempts to render a Vue template in `serverPrefetch` or `data` to add to the data cascade
         // this will fail because data.page does not exist yet!
         if(data.page) {

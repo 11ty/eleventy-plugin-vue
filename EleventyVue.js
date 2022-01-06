@@ -3,6 +3,7 @@ const fs = require("fs");
 const fsp = fs.promises;
 const fastglob = require("fast-glob");
 const lodashMerge = require("lodash.merge");
+const { DepGraph } = require('dependency-graph');
 
 const rollup = require("rollup");
 const rollupPluginVue = require("rollup-plugin-vue");
@@ -39,6 +40,7 @@ class EleventyVue {
     this.vueFileToCSSMap = {};
     this.vueFileToJavaScriptFilenameMap = {};
     this.componentRelationships = [];
+    this.componentGraph = new DepGraph();
 
     this.rollupBundleOptions = {
       format: "cjs", // because we’re consuming these in node. See also "esm"
@@ -55,6 +57,10 @@ class EleventyVue {
 
     this.componentsWriteCount = 0;
     this.readOnly = false;
+  }
+
+  setComponentGraph(graph) {
+    this.componentGraph = graph;
   }
 
   setReadOnly(readOnly) {
@@ -174,8 +180,18 @@ class EleventyVue {
     return path.join(this.workingDir, this.cacheDir);
   }
 
+  getRelativeJsPathFromVuePath(vuePath) {
+    let jsFilename = this.getFullJavaScriptComponentFilePath(vuePath);
+    let rel = path.relative(this.getFullCacheDir(), jsFilename);
+    return rel;
+  }
+
+  // works with relative paths or absolute paths
   isIncludeFile(filepath) {
-    return filepath.startsWith(this.includesDir);
+    let absoluteFile = path.resolve(filepath);
+    let absoluteIncludesDir = path.resolve(this.includesDir);
+
+    return absoluteFile.startsWith(absoluteIncludesDir);
   }
 
   clearRequireCache() {
@@ -325,12 +341,34 @@ class EleventyVue {
           this.cssManager.addComponentCode(jsFilename, css);
         }
       }
+    }
 
-      // Re-establish both component relationships
-      for(let relation of this.componentRelationships) {
+    // Re-establish both component relationships
+    for(let relation of this.componentRelationships) {
+      this.initComponentRelationship(relation.from, relation.to);
+
+      if(this.cssManager) {
         this.cssManager.addComponentRelationship(relation.from, relation.to);
       }
     }
+  }
+
+  initComponentRelationship(from, to) {
+    if(from && to) {
+      if(!this.componentGraph.hasNode(from)) {
+        this.componentGraph.addNode(from);
+      }
+      if(!this.componentGraph.hasNode(to)) {
+        this.componentGraph.addNode(to);
+      }
+      this.componentGraph.addDependency(from, to);
+    }
+  }
+
+  getAllComponentsUsedBy(vuePath) {
+    let jsFilename = this.getRelativeJsPathFromVuePath(vuePath);
+    let deps = this.componentGraph.dependantsOf(jsFilename);
+    return deps;
   }
 
   // output is returned from .write() or .generate()
@@ -362,19 +400,21 @@ class EleventyVue {
         }
       }
 
-      if(this.cssManager) {
-        // If you import it, it will roll up the imported CSS in the CSS manager
-        let importList = entry.imports || [];
-        // debugDev("filename: %o importedBindings:", entry.fileName, Object.keys(entry.importedBindings));
-        debugDev("filename: %o imports:", entry.fileName, entry.imports);
-        // debugDev("modules: %O", Object.keys(entry.modules));
+      let importList = entry.imports || [];
+      // debugDev("filename: %o importedBindings:", entry.fileName, Object.keys(entry.importedBindings));
+      debugDev("filename: %o imports:", entry.fileName, entry.imports);
+      // debugDev("modules: %O", Object.keys(entry.modules));
 
-        for(let importFilename of importList) {
-          if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
-            continue;
-          }
+      for(let importFilename of importList) {
+        if(importFilename.endsWith(path.join("vue-runtime-helpers/dist/normalize-component.js"))) {
+          continue;
+        }
 
-          this.componentRelationships.push({ from: jsFilename, to: importFilename });
+        this.componentRelationships.push({ from: jsFilename, to: importFilename });
+        this.initComponentRelationship(jsFilename, importFilename);
+
+        // If you import it, it will roll up the imported CSS in the CSS manager (it doesn’t need to be _used_)
+        if(this.cssManager) {
           this.cssManager.addComponentRelationship(jsFilename, importFilename);
         }
       }
@@ -425,7 +465,7 @@ class EleventyVue {
     let css = cssText.trim();
     if(css) {
       debugDev("Adding CSS to %o, length: %o", localVuePath, css.length);
-      
+
       this.vueFileToCSSMap[localVuePath].push(css);
     }
   }
@@ -481,14 +521,14 @@ class EleventyVue {
     if(!vueComponent.mixins) {
       vueComponent.mixins = [];
     }
-    
+
     // Full data cascade is available to the root template component
     let dataMixin = {
       data: function eleventyFullDataCascade() {
         return data;
       },
     };
-    
+
     // remove any existing eleventyFullDataCascade mixins
     vueComponent.mixins = vueComponent.mixins.filter(entry => {
       if(entry &&
@@ -499,7 +539,7 @@ class EleventyVue {
       }
       return true;
     });
-    
+
     vueComponent.mixins.push(dataMixin);
 
     const app = new Vue(vueComponent);
