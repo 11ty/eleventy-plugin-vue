@@ -2,7 +2,7 @@
 
 Adds Vue Single File Component (SFC) support to Eleventy. Eleventy processes `.vue` SFC files as Eleventy templates and outputs zero-bundle size server rendered components.
 
-Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and Vue, a match made to power Netlify.com](https://www.netlify.com/blog/2020/09/18/eleventy-and-vue-a-match-made-to-power-netlify.com/)
+Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and Vue, a match made to power Netlify.com](https://www.netlify.com/blog/2020/09/18/eleventy-and-vue-a-match-made-to-power-netlifycom/)
 
 ## Installation
 
