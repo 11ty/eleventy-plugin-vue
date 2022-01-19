@@ -182,8 +182,10 @@ class EleventyVue {
 
   getRelativeJsPathFromVuePath(vuePath) {
     let jsFilename = this.getFullJavaScriptComponentFilePath(vuePath);
-    let rel = path.relative(this.getFullCacheDir(), jsFilename);
-    return rel;
+    if(jsFilename) {
+      let rel = path.relative(this.getFullCacheDir(), jsFilename);
+      return rel;
+    }
   }
 
   // works with relative paths or absolute paths
@@ -487,6 +489,9 @@ class EleventyVue {
 
   getFullJavaScriptComponentFilePath(localVuePath) {
     let jsFilename = this.getJavaScriptComponentFile(localVuePath);
+    if(!jsFilename) {
+      return;
+    }
     debugDev("Map vue path to JS component file: %o to %o", localVuePath, jsFilename);
     let fullComponentPath = path.join(this.getFullCacheDir(), jsFilename);
     return fullComponentPath;

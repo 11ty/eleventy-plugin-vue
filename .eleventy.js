@@ -56,6 +56,11 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     }
 
     let lookingForJsFile = eleventyVue.getRelativeJsPathFromVuePath(fullTemplateInputPath);
+    if(!lookingForJsFile) {
+      // e.g. your config file
+      return false;
+    }
+
     for(let file of changedFiles) {
       if(file === fullTemplateInputPath) {
         return true;
