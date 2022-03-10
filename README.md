@@ -1,4 +1,6 @@
-# eleventy-plugin-vue for Vue 2
+<p align="center"><img src="https://www.11ty.dev/img/logo-github.png" alt="eleventy Logo"></p>
+
+# eleventy-plugin-vue for Vue 2 🕚⚡️🎈🐀
 
 Zero bundle size server-rendered components for Vue.js.
 
