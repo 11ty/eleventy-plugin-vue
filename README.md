@@ -1,4 +1,6 @@
-# eleventy-plugin-vue for Vue 3
+<p align="center"><img src="https://www.11ty.dev/img/logo-github.png" alt="eleventy Logo"></p>
+
+# eleventy-plugin-vue for Vue 3 🕚⚡️🎈🐀
 
 Adds Vue Single File Component (SFC) support to Eleventy. Eleventy processes `.vue` SFC files as Eleventy templates and outputs zero-bundle size server rendered components.
 
