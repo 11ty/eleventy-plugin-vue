@@ -530,7 +530,6 @@ class EleventyVue {
   }
 
   async renderString(str, data, mixin = {}) {
-
     return this.renderComponent({
       template: str
     }, data, mixin);
