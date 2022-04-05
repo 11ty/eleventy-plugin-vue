@@ -514,7 +514,23 @@ class EleventyVue {
     return component;
   }
 
+  getAllJavaScriptComponentFiles(){
+    return Object.keys(this.vueFileToJavaScriptFilenameMap).map(localVuePath => {
+      return this.getFullJavaScriptComponentFilePath(localVuePath);
+    });
+  }
+
+  getAllCompiledComponents(){
+    let components = [];
+    for(let file of this.getAllJavaScriptComponentFiles()){
+      let component = require(file);
+      components.push(component);
+    }
+    return components;
+  }
+
   async renderString(str, data, mixin = {}) {
+
     return this.renderComponent({
       template: str
     }, data, mixin);
@@ -534,6 +550,16 @@ class EleventyVue {
     // app.config.errorHandler = function(msg, vm, info) {
     //   console.log( "[Vue 11ty] Error", msg, vm, info );
     // };
+
+
+    /* register vue components to use as globally available components */
+
+    //remove unnamed components, they are not supported yet
+    const namedComponents = this.getAllCompiledComponents().filter(component => component.name);
+    for(let component of namedComponents){
+      app.component(component.name, component);
+    }
+
 
     app.mixin(mixin);
 

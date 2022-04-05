@@ -82,6 +82,27 @@ test("Vue SFC Render", async t => {
 	}), `<div><p>/some-url/</p><p>HELLO</p><div id="child"></div></div>`);
 });
 
+
+test("Vue renderString with Components", async t => {
+	let ev = new EleventyVue();
+	ev.setCacheDir(".cache/vue-test-renderString");
+	ev.setInputDir("test/stubs-renderString");
+	ev.setIncludesDir("_includes");
+
+	let files = await ev.findFiles();
+	let bundle = await ev.getBundle(files);
+	let output = await ev.write(bundle);
+
+	ev.createVueComponents(output);
+
+	t.is(await ev.renderString('<div><Test><p>slot content</p></Test></div>', {
+		page: {
+			url: "/some-url/"
+		}
+	}), `<div><div> test vue file /some-url/ <!--[--><p>slot content</p><!--]--></div></div>`);
+});
+
+
 test("Vue SFC Render (one input file)", async t => {
 	let ev = new EleventyVue();
 	ev.setCacheDir(".cache/vue-test-b");
