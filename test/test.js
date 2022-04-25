@@ -1,6 +1,7 @@
 const test = require("ava");
 const path = require("path");
 const { InlineCodeManager } = require("@11ty/eleventy-assets");
+const Eleventy = require("@11ty/eleventy");
 const EleventyVue = require("../EleventyVue");
 
 function getEvInstance() {
@@ -274,4 +275,14 @@ test("Vue SFC Data Leak", async t => {
 	t.is(component.mixins.length, 1);
 	t.is(await ev.renderComponent(component, data), `<div data-server-rendered="true">[{"a":1,"b":2},{"c":3,"d":4}]</div>`);
 	t.is(component.mixins.length, 1);
+});
+
+test("Vue Aliases using `rollupOptions` Issue #7", async t => {
+	let elev = new Eleventy("./test/stubs-aliases/", "./test/stubs-aliases/_site", {
+		configPath: "./test/stubs-aliases/.eleventy.js",
+		quietMode: true,
+	});
+	let [page] = await elev.toJSON();
+	t.is(page.url, "/subdir/child/");
+	t.is(page.content, `<div data-server-rendered="true">\n  Test\n  <div>Included</div></div>`);
 });
