@@ -86,6 +86,15 @@ module.exports = function(eleventyConfig) {
         ]
       }
     }
+
+    // Passed to rollup.rollup
+    rollupOptions: {
+      // Declare your own external dependencies
+      external: [],
+
+      // Use your own Rollup plugins
+      plugins: [],
+    },
   });
 };
 ```
