@@ -1,6 +1,6 @@
 {
   "name": "@11ty/eleventy-plugin-vue",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Use Vue.js single file components in Eleventy.",
   "publishConfig": {
     "access": "public"
@@ -46,11 +46,11 @@
   },
   "dependencies": {
     "@11ty/eleventy-assets": "^1.0.6",
-    "debug": "^4.3.3",
+    "debug": "^4.3.4",
     "dependency-graph": "^0.11.0",
-    "fast-glob": "^3.2.7",
+    "fast-glob": "^3.2.11",
     "lodash.merge": "^4.6.2",
-    "rollup": "^2.63.0",
+    "rollup": "^2.70.2",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-vue": "^5.1.9",
     "vue": "^2.6.14",
@@ -60,6 +60,6 @@
   "devDependencies": {
     "@11ty/eleventy": "^1.0.1",
     "@rollup/plugin-alias": "^3.1.9",
-    "ava": "^4.0.0"
+    "ava": "^4.2.0"
   }
 }
