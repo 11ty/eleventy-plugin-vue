@@ -392,6 +392,9 @@ class EleventyVue {
 
   getAllComponentsUsedBy(vuePath) {
     let jsFilename = this.getRelativeJsPathFromVuePath(vuePath);
+    if(!jsFilename || !this.componentGraph.hasNode(jsFilename)) {
+      return [];
+    }
     let deps = this.componentGraph.dependantsOf(jsFilename);
     return deps;
   }
