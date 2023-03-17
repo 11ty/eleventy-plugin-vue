@@ -12,6 +12,7 @@ Read more about the goals of this plugin (and a full tutorial!) at [Eleventy and
 npm install @11ty/eleventy-plugin-vue
 ```
 
+* `0.8.x` is encouraged to use Eleventy `2.0.0` (and Node 14+)
 * `0.7.x` is encouraged to use Eleventy `1.0.0` (and Node 12+)
 * `0.2.x` is encouraged to use Eleventy `0.11.1` or newer (for incremental Vue component builds)
 * `0.1.x` requires Eleventy `0.11.0` or newer
