@@ -9,7 +9,7 @@
 </style>
 <script>
 import include from "~components/include.vue";
-// import include from "../_includes/include.vue";
+
 export default {
   props: {},
   components: {

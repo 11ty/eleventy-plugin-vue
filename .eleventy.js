@@ -51,9 +51,6 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
   let componentGraph = new DepGraph();
   eleventyVue.setComponentGraph(componentGraph);
 
-  let changedVueFilesOnWatch = [];
-  let skipVueBuild = false;
-
   function isFileRelevantToIncrementalBuild(fullTemplateInputPath, changedFiles = []) {
     if(changedFiles.length === 0) {
       return true;
@@ -111,8 +108,12 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     }
   });
 
+  let changedVueFilesOnWatch = [];
+  let changedFiles = [];
+  let skipVueBuild = false;
+
   // `beforeWatch` is available on Eleventy 0.11.0 and newer
-  eleventyConfig.on("beforeWatch", changedFiles => {
+  eleventyConfig.on("eleventy.beforeWatch", changedFiles => {
     if(!Array.isArray(changedFiles)) {
       changedFiles = [];
     }
@@ -133,6 +134,53 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
     eleventyVue.clearRequireCache();
   });
 
+  async function runBundle() {
+    // Runs after eleventy.beforeWatch
+    if(skipVueBuild) {
+      // we only call this to set the write count for the build
+      eleventyVue.createVueComponents([]);
+    } else if(options.readOnly && eleventyVue.hasRollupOutputCache()) {
+      await eleventyVue.loadRollupOutputCache();
+    } else {
+      let files = changedVueFilesOnWatch;
+      let isSubset = false;
+
+      if(files && files.length) {
+        isSubset = true;
+      } else {
+        // input passed in via config
+        if(options.input && options.input.length) {
+          files = options.input;
+          isSubset = true;
+        } else {
+          files = await eleventyVue.findFiles();
+        }
+      }
+
+      // quit early
+      if(!files || !files.length) {
+        return;
+      }
+
+      let bundle = await eleventyVue.getBundle(files, isSubset);
+      let output = await eleventyVue.write(bundle);
+
+      eleventyVue.createVueComponents(output);
+
+      if(!options.readOnly && !isSubset) { // implied eleventyVue.hasRollupOutputCache() was false
+        await eleventyVue.writeRollupOutputCache();
+      }
+    }
+  }
+
+  let hasInit = false;
+
+  eleventyConfig.on("eleventy.before", async () => {
+    if(hasInit) {
+      await runBundle();
+    }
+  });
+
   eleventyConfig.addTemplateFormats("vue");
 
   eleventyConfig.addExtension("vue", {
@@ -144,6 +192,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       // don’t include serverPrefetch by default—a lot of async data fetching happens here!
       "data",
     ],
+
+    // runs *once* at Eleventy start (not on rebuilds)
     init: async function() {
       eleventyVue.setInputDir(this.config.inputDir);
       eleventyVue.setIncludesDir(this.config.dir.includes, !options.searchIncludesDirectoryForLayouts);
@@ -153,41 +203,8 @@ module.exports = function(eleventyConfig, configGlobalOptions = {}) {
       eleventyVue.setRollupOptions(options.rollupOptions);
       eleventyVue.setRollupPluginVueOptions(options.rollupPluginVueOptions);
 
-      if(skipVueBuild) {
-        // we only call this to set the write count for the build
-        eleventyVue.createVueComponents([]);
-      } else if(options.readOnly && eleventyVue.hasRollupOutputCache()) {
-        await eleventyVue.loadRollupOutputCache();
-      } else {
-        let files = changedVueFilesOnWatch;
-        let isSubset = false;
-
-        if(files && files.length) {
-          isSubset = true;
-        } else {
-          // input passed in via config
-          if(options.input && options.input.length) {
-            files = options.input;
-            isSubset = true;
-          } else {
-            files = await eleventyVue.findFiles();
-          }
-        }
-
-        // quit early
-        if(!files || !files.length) {
-          return;
-        }
-
-        let bundle = await eleventyVue.getBundle(files, isSubset);
-        let output = await eleventyVue.write(bundle);
-
-        eleventyVue.createVueComponents(output);
-
-        if(!options.readOnly && !isSubset) { // implied eleventyVue.hasRollupOutputCache() was false
-          await eleventyVue.writeRollupOutputCache();
-        }
-      }
+      hasInit = true;
+      await runBundle();
     },
 
     // Caching
