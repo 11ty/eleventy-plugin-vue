@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This repository is archived. `@11ty/eleventy-plugin-vue` now lives at [`11ty/eleventy-plugin-template-languages/vue`](https://github.com/11ty/eleventy-plugin-template-languages/tree/main/vue). Please file issues on [the new repository](https://github.com/11ty/eleventy-plugin-template-languages/issues).
+
 <p align="center"><img src="https://www.11ty.dev/img/logo-github.svg" width="200" height="200" alt="eleventy Logo"></p>
 
 # eleventy-plugin-vue for Vue 3 🕚⚡️🎈🐀
